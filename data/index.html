@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#07090c" />
+  <title>T-Print</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+  <!-- Icons: https://icon-sets.iconify.design/mdi/ (bundled offline for SoftAP) -->
+  <script src="/iconify-icon.min.js"></script>
+  <script src="/icons.js"></script>
+</head>
+<body>
+  <div class="atmosphere" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <div class="shell">
+    <header class="top">
+      <div class="brand-block">
+        <div class="mark" aria-hidden="true">
+          <!-- mdi:printer-3d — https://icon-sets.iconify.design/mdi/printer-3d/ (inline for SoftAP) -->
+          <svg class="mark-icon" viewBox="0 0 24 24" width="28" height="28" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" d="M19 6a1 1 0 0 0 1-1a1 1 0 0 0-1-1a1 1 0 0 0-1 1a1 1 0 0 0 1 1m0-4a3 3 0 0 1 3 3v6h-4V7H6v4H2V5a3 3 0 0 1 3-3zm-1 16.25c0 .38-.21.71-.53.88l-4.9 2.69q-.255.18-.57.18c-.21 0-.41-.06-.57-.18l-4.9-2.69a.99.99 0 0 1-.53-.88V13c0-.38.21-.71.53-.88l4.9-2.44c.16-.12.36-.18.57-.18q.315 0 .57.18l4.9 2.44c.32.17.53.5.53.88zm-6-6.6L9.04 13L12 14.6l2.96-1.6zm-4 6.01l3 1.63v-2.96l-3-1.62zm8 0v-2.95l-3 1.62v2.96z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="eyebrow">T‑Embed companion</p>
+          <h1>T-Print</h1>
+        </div>
+      </div>
+      <div id="statusChip" class="live-pill" data-state="boot">
+        <span class="pulse"></span>
+        <iconify-icon icon="mdi:access-point" width="16"></iconify-icon>
+        <span class="live-copy">
+          <span class="live-title">Starting…</span>
+          <span class="live-ip"></span>
+        </span>
+      </div>
+    </header>
+
+    <p class="lede">Connect to <strong>T-Print</strong> Wi‑Fi, open this page, join your home network, then finish setup from the device IP.</p>
+    <div id="postWifiBanner" class="next-banner" hidden>
+      <iconify-icon icon="mdi:wifi-check" width="22"></iconify-icon>
+      <div>
+        <strong>Wi‑Fi connected</strong>
+        <p id="postWifiText">Reconnect your phone to your home Wi‑Fi, then open the IP shown on the device.</p>
+      </div>
+    </div>
+
+    <nav class="rail" role="tablist" aria-label="Setup sections">
+      <button class="rail-btn active" data-tab="wifi" role="tab" aria-selected="true">
+        <iconify-icon icon="mdi:wifi" width="20"></iconify-icon>
+        <span>Wi‑Fi</span>
+      </button>
+      <button class="rail-btn" data-tab="printers" role="tab" aria-selected="false">
+        <iconify-icon icon="mdi:printer-3d-nozzle" width="20"></iconify-icon>
+        <span>Printers</span>
+      </button>
+      <button class="rail-btn" data-tab="device" role="tab" aria-selected="false">
+        <iconify-icon icon="mdi:tune-vertical" width="20"></iconify-icon>
+        <span>Device</span>
+      </button>
+    </nav>
+
+    <main>
+      <section id="tab-wifi" class="stage active" role="tabpanel">
+        <div class="stage-head">
+          <h2>Join your network</h2>
+          <p>You’re on <strong>T-Print</strong> setup Wi‑Fi. Scan, pick your home network, connect — then switch your phone back to home Wi‑Fi and open the new IP.</p>
+        </div>
+
+        <button id="btnScan" class="btn btn-ghost" type="button">
+          <iconify-icon icon="mdi:radar" width="18"></iconify-icon>
+          Scan networks
+        </button>
+
+        <div id="wifiList" class="stack"></div>
+
+        <form id="wifiForm" class="form-block">
+          <div class="field">
+            <label for="ssid">Network name</label>
+            <input id="ssid" name="ssid" required autocomplete="off" placeholder="Home Wi‑Fi" />
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="new-password" placeholder="••••••••" />
+          </div>
+          <button class="btn btn-primary" type="submit">
+            <iconify-icon icon="mdi:check-network" width="18"></iconify-icon>
+            Connect
+          </button>
+        </form>
+        <p id="wifiMsg" class="toast" hidden></p>
+      </section>
+
+      <section id="tab-printers" class="stage" role="tabpanel" hidden>
+        <div class="stage-head split">
+          <div>
+            <h2>Your fleet</h2>
+            <p>Scan the LAN for Klipper, PrusaLink, and Bambu MQTT — or add manually.</p>
+          </div>
+          <div class="row" style="gap:.45rem">
+            <button id="btnDiscover" class="btn btn-ghost" type="button">
+              <iconify-icon icon="mdi:radar" width="18"></iconify-icon>
+              Scan network
+            </button>
+            <button id="btnAdd" class="btn btn-primary" type="button">
+              <iconify-icon icon="mdi:plus" width="18"></iconify-icon>
+              Add
+            </button>
+          </div>
+        </div>
+        <div id="printerTestBanner" class="toast sticky-toast" hidden></div>
+        <div id="discoverList" class="stack"></div>
+        <div id="printerList" class="stack"></div>
+      </section>
+
+      <section id="tab-device" class="stage" role="tabpanel" hidden>
+        <div class="stage-head">
+          <h2>Device</h2>
+          <p>Name, screen brightness, and error alerts for the RGB bar + speaker.</p>
+        </div>
+
+        <form id="deviceForm" class="form-block">
+          <div class="field">
+            <label for="deviceName">Device name</label>
+            <input id="deviceName" name="deviceName" maxlength="31" placeholder="t-print" />
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <label for="brightness">Brightness</label>
+              <span id="briVal" class="metric">80%</span>
+            </div>
+            <input id="brightness" name="brightness" type="range" min="5" max="100" value="80" />
+          </div>
+
+          <label class="switch-row" for="alarmOnError">
+            <span class="switch-copy">
+              <strong>
+                <iconify-icon icon="mdi:bell-ring" width="18"></iconify-icon>
+                Alarm on error
+              </strong>
+              <small>Beep when any printer hits error or attention. LEDs blink red either way.</small>
+            </span>
+            <input id="alarmOnError" name="alarmOnError" type="checkbox" />
+            <span class="switch" aria-hidden="true"></span>
+          </label>
+
+          <button class="btn btn-primary" type="submit">
+            <iconify-icon icon="mdi:content-save" width="18"></iconify-icon>
+            Save settings
+          </button>
+        </form>
+
+        <p id="deviceMeta" class="meta-line"></p>
+
+        <button id="btnScreenshot" class="btn btn-ghost" type="button" style="width:100%;margin-top:1rem">
+          <iconify-icon icon="mdi:monitor-screenshot" width="18"></iconify-icon>
+          Capture screenshot
+        </button>
+        <p id="screenshotMsg" class="toast sticky-toast" hidden></p>
+
+        <button id="btnReset" class="btn btn-danger" type="button">
+          <iconify-icon icon="mdi:factory" width="18"></iconify-icon>
+          Factory reset
+        </button>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="printerDialog">
+    <div class="sheet">
+      <form id="printerForm">
+        <header class="sheet-head">
+          <h3 id="dialogTitle">
+            <iconify-icon icon="mdi:printer-3d" width="22"></iconify-icon>
+            <span>Add printer</span>
+          </h3>
+          <button type="button" id="btnClosePrinter" class="icon-close" aria-label="Close">
+            <iconify-icon icon="mdi:close" width="20"></iconify-icon>
+          </button>
+        </header>
+
+        <input type="hidden" name="id" />
+
+        <div class="field">
+          <label for="pname">Display name</label>
+          <input id="pname" name="name" required placeholder="Voron / X1C / MK4" />
+        </div>
+
+        <div class="field">
+          <label for="ptype">Type</label>
+          <div class="type-grid" id="typeGrid" role="radiogroup" aria-label="Printer type">
+            <button type="button" class="type-card active" data-type="klipper">
+              <iconify-icon icon="mdi:printer-3d-nozzle-heat" width="22"></iconify-icon>
+              <span>Klipper</span>
+            </button>
+            <button type="button" class="type-card" data-type="bambu">
+              <iconify-icon icon="mdi:printer-3d" width="22"></iconify-icon>
+              <span>Bambu</span>
+            </button>
+            <button type="button" class="type-card" data-type="prusa">
+              <iconify-icon icon="mdi:printer-outline" width="22"></iconify-icon>
+              <span>Prusa</span>
+            </button>
+          </div>
+          <select id="ptype" name="type" hidden>
+            <option value="klipper">Klipper</option>
+            <option value="bambu">Bambu</option>
+            <option value="prusa">Prusa</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="phost">Host / IP</label>
+          <input id="phost" name="host" required placeholder="192.168.1.50" inputmode="decimal" />
+        </div>
+        <div class="field">
+          <label for="pport">Port</label>
+          <input id="pport" name="port" type="number" placeholder="auto" />
+        </div>
+        <div class="field type-klipper type-prusa">
+          <label for="papi">API key</label>
+          <input id="papi" name="apiKey" autocomplete="off" placeholder="optional for some Moonraker setups" />
+        </div>
+        <div class="field type-bambu">
+          <label for="pserial">Serial</label>
+          <input id="pserial" name="serial" autocomplete="off" />
+        </div>
+        <div class="field type-bambu">
+          <label for="pcode">LAN access code</label>
+          <input id="pcode" name="accessCode" autocomplete="off" />
+        </div>
+
+        <div class="field type-camera">
+          <label for="psnap">Snapshot URL</label>
+          <div class="field-row gap">
+            <input id="psnap" name="snapshotUrl" autocomplete="off"
+              placeholder="http://192.168.1.50/webcam/snapshot.jpg" />
+            <button type="button" class="btn btn-ghost btn-sm" id="btnCamPreview">Preview</button>
+          </div>
+          <small class="hint" id="snapHint">JPEG from crowsnest / webcamd — shown on the device camera page. Preview only after you click Preview.</small>
+        </div>
+        <div class="cam-preview type-camera" id="camPreview" hidden>
+          <div class="cam-preview-head">
+            <strong>Snapshot preview</strong>
+          </div>
+          <img id="camPreviewImg" alt="Printer camera" />
+        </div>
+      </form>
+
+      <div id="testMsg" class="toast sticky-toast" hidden></div>
+      <footer class="sheet-actions">
+        <button type="button" id="btnTest" class="btn btn-ghost">
+          <iconify-icon icon="mdi:connection" width="18"></iconify-icon>
+          Test
+        </button>
+        <button type="button" id="btnSavePrinter" class="btn btn-primary">
+          <iconify-icon icon="mdi:content-save" width="18"></iconify-icon>
+          Save printer
+        </button>
+      </footer>
+    </div>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>

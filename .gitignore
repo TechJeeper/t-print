@@ -1,0 +1,11 @@
+.pio
+.vscode/.browse.c_cpp.dbs*
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch
+# Generated at build; keep out of git noise (embed script recreates it)
+include/webapp_assets.h
+__pycache__/
+*.pyc
+.DS_Store
+
