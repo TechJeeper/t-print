@@ -62,11 +62,11 @@ void drawTopBar(const char* title) {
   canvas.setTextColor(COL_TEXT, COL_PANEL);
   canvas.drawString(title, 8, 11, &fonts::Font2);
 
-  char bat[24];
-  snprintf(bat, sizeof(bat), "%u%%", Board::batteryPercent());
+  char right[32];
+  snprintf(right, sizeof(right), "v%s  %u%%", PP_VERSION, Board::batteryPercent());
   canvas.setTextDatum(textdatum_t::middle_right);
   canvas.setTextColor(COL_MUTED, COL_PANEL);
-  canvas.drawString(bat, canvas.width() - 8, 11, &fonts::Font0);
+  canvas.drawString(right, canvas.width() - 8, 11, &fonts::Font0);
 }
 
 uint16_t statusColor(const PrinterState* st) {
