@@ -5,7 +5,8 @@
 #include <WiFiClientSecure.h>
 
 namespace {
-constexpr size_t kMaxImage = 180 * 1024;
+// Webcam stills (esp. 1080p) often exceed 180KB; T-Embed has PSRAM for this.
+constexpr size_t kMaxImage = 400 * 1024;
 
 CameraImageFormat detectFormat(const uint8_t* data, size_t len) {
   if (len >= 2 && data[0] == 0xff && data[1] == 0xd8) return CameraImageFormat::Jpeg;
@@ -106,7 +107,7 @@ bool fetchHttp(const char* url, const char* apiKey, uint8_t** outBuf, size_t* ou
 
   size_t got = 0;
   uint32_t idleStart = millis();
-  uint32_t hardDeadline = millis() + 10000;
+  uint32_t hardDeadline = millis() + 15000;
   while (got < cap && millis() < hardDeadline) {
     int avail = stream->available();
     if (avail > 0) {
@@ -116,11 +117,13 @@ bool fetchHttp(const char* url, const char* apiKey, uint8_t** outBuf, size_t* ou
         got += (size_t)n;
         idleStart = millis();
         if (contentLen > 0 && (int)got >= contentLen) break;
+        // Early exit once we have a full JPEG (EOI), even if Content-Length lied.
+        if (contentLen < 0 && got > 4 && scratch[got - 2] == 0xff && scratch[got - 1] == 0xd9) break;
       }
     } else {
       // Don't require http.connected() — ESP32 often clears it while bytes remain.
       if (!stream->connected() && !http.connected()) break;
-      if (millis() - idleStart > 1500) break;
+      if (millis() - idleStart > 3500) break;
       delay(1);
       yield();
     }
@@ -136,6 +139,31 @@ bool fetchHttp(const char* url, const char* apiKey, uint8_t** outBuf, size_t* ou
   }
 
   size_t imgLen = got - off;
+  if (fmt == CameraImageFormat::Jpeg) {
+    bool eoi = false;
+    for (size_t i = imgLen; i-- > 1;) {
+      if (scratch[off + i - 1] == 0xff && scratch[off + i] == 0xd9) {
+        eoi = true;
+        break;
+      }
+      if (i < imgLen - 1024 && imgLen > 1024) break;  // only need near end
+    }
+    // Full scan if not found in tail
+    if (!eoi) {
+      for (size_t i = 2; i < imgLen; ++i) {
+        if (scratch[off + i - 1] == 0xff && scratch[off + i] == 0xd9) {
+          eoi = true;
+          break;
+        }
+      }
+    }
+    if (!eoi) {
+      snprintf(status, statusLen, "truncated %u KB", (unsigned)(imgLen / 1024));
+      free(scratch);
+      return false;
+    }
+  }
+
   uint8_t* copy = (uint8_t*)ps_malloc(imgLen);
   if (!copy) copy = (uint8_t*)malloc(imgLen);
   if (!copy) {

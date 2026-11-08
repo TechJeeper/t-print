@@ -38,6 +38,10 @@ python -m http.server 8080 --directory flasher
 
 Hosted flasher: https://techjeeper.github.io/t-print/
 
+## Versioning
+
+Semver lives in `VERSION`. GitHub deploys bump the **patch** by default (`python scripts/bump_version.py`), then rebuild so firmware + flasher manifest match.
+
 ## Build
 
 ```bash

@@ -269,6 +269,47 @@ bool fetchSnapshot(const PrinterProfile* p) {
   return true;
 }
 
+bool jpegHasEoi(const uint8_t* data, size_t len) {
+  if (!data || len < 4) return false;
+  // Scan tail first — EOI is normally at the end.
+  size_t start = len > 512 ? len - 512 : 2;
+  for (size_t i = len - 1; i >= start; --i) {
+    if (data[i - 1] == 0xff && data[i] == 0xd9) return true;
+    if (i == start) break;
+  }
+  for (size_t i = 2; i < len; ++i) {
+    if (data[i - 1] == 0xff && data[i] == 0xd9) return true;
+  }
+  return false;
+}
+
+bool jpegIsProgressive(const uint8_t* data, size_t len) {
+  // SOF2 = 0xFFC2 progressive DCT — TJpgDec (LovyanGFX) cannot decode these.
+  for (size_t i = 0; i + 1 < len; ++i) {
+    if (data[i] != 0xff) continue;
+    uint8_t m = data[i + 1];
+    if (m == 0xc2) return true;
+    if (m == 0xd9) break;
+  }
+  return false;
+}
+
+bool drawCamImage() {
+  const int x = 8, y = 32, maxW = 304, maxH = 130;
+  if (camFmt == CameraImageFormat::Png) {
+    return canvas.drawPng(camImg, camImgLen, x, y, maxW, maxH, 0, 0, 0.0f);
+  }
+  if (camFmt != CameraImageFormat::Jpeg || !camImg || !camImgLen) return false;
+
+  // Auto-fit first, then forced downscales for large webcam stills (TJpgDec is picky).
+  const float scales[] = {0.0f, 0.5f, 0.25f, 0.125f};
+  for (float s : scales) {
+    canvas.fillRoundRect(4, 28, 312, 138, 8, COL_PANEL);
+    if (canvas.drawJpg(camImg, camImgLen, x, y, maxW, maxH, 0, 0, s)) return true;
+  }
+  return false;
+}
+
 void paintDetailPage2(const PrinterProfile* p) {
   (void)p;
   canvas.fillRoundRect(4, 28, 312, 138, 8, COL_PANEL);
@@ -281,21 +322,37 @@ void paintDetailPage2(const PrinterProfile* p) {
   }
 
   if (camImg && camImgLen && camFetchedFor == selected) {
-    const int x = 8, y = 32, maxW = 304, maxH = 130;
-    bool ok = false;
-    if (camFmt == CameraImageFormat::Jpeg) {
-      ok = canvas.drawJpg(camImg, camImgLen, x, y, maxW, maxH, 0, 0, 0.0f);
-    } else if (camFmt == CameraImageFormat::Png) {
-      ok = canvas.drawPng(camImg, camImgLen, x, y, maxW, maxH, 0, 0, 0.0f);
-    }
-    if (!ok) {
+    if (camFmt == CameraImageFormat::Jpeg && jpegIsProgressive(camImg, camImgLen)) {
       canvas.setTextColor(COL_ERR, COL_PANEL);
-      canvas.drawString("Decode failed", canvas.width() / 2, 90, &fonts::Font2);
-    } else {
-      canvas.setTextDatum(textdatum_t::bottom_right);
+      canvas.drawString("Progressive JPEG", canvas.width() / 2, 82, &fonts::Font2);
       canvas.setTextColor(COL_MUTED, COL_PANEL);
-      canvas.drawString(camStatus, canvas.width() - 12, 162, &fonts::Font0);
+      canvas.drawString("Use baseline snapshot URL", canvas.width() / 2, 110, &fonts::Font0);
+      return;
     }
+    if (camFmt == CameraImageFormat::Jpeg && !jpegHasEoi(camImg, camImgLen)) {
+      canvas.setTextColor(COL_ERR, COL_PANEL);
+      canvas.drawString("Truncated JPEG", canvas.width() / 2, 82, &fonts::Font2);
+      canvas.setTextColor(COL_MUTED, COL_PANEL);
+      canvas.drawString(camStatus[0] ? camStatus : "fetch incomplete", canvas.width() / 2, 110,
+                        &fonts::Font0);
+      return;
+    }
+
+    if (!drawCamImage()) {
+      canvas.fillRoundRect(4, 28, 312, 138, 8, COL_PANEL);
+      canvas.setTextDatum(textdatum_t::middle_center);
+      canvas.setTextColor(COL_ERR, COL_PANEL);
+      canvas.drawString("Decode failed", canvas.width() / 2, 82, &fonts::Font2);
+      canvas.setTextColor(COL_MUTED, COL_PANEL);
+      char detail[40];
+      snprintf(detail, sizeof(detail), "%u KB · try smaller cam", (unsigned)(camImgLen / 1024));
+      canvas.drawString(detail, canvas.width() / 2, 110, &fonts::Font0);
+      return;
+    }
+
+    canvas.setTextDatum(textdatum_t::bottom_right);
+    canvas.setTextColor(COL_MUTED, COL_PANEL);
+    canvas.drawString(camStatus, canvas.width() - 12, 162, &fonts::Font0);
     return;
   }
 

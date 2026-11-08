@@ -8,9 +8,19 @@ FLASH = ROOT / "flasher"
 FLASH.mkdir(exist_ok=True)
 
 
+def project_version() -> str:
+    ver_path = ROOT / "VERSION"
+    if ver_path.exists():
+        ver = ver_path.read_text(encoding="utf-8").strip()
+        if ver:
+            return ver
+    return "0.0.0"
+
+
 def prepare(source, target, env):
     build = Path(env.subst("$BUILD_DIR"))
     packages = Path(env["PROJECT_PACKAGES_DIR"])
+    version = project_version()
 
     def copy_if(src: Path, name: str):
         if src.exists():
@@ -33,7 +43,7 @@ def prepare(source, target, env):
 
     manifest = {
         "name": "T-Print",
-        "version": "1.0.0",
+        "version": version,
         "new_install_prompt_erase": True,
         "builds": [
             {
