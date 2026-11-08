@@ -20,6 +20,7 @@ Icons in the setup UI and web flasher come from [Iconify](https://icon-sets.icon
 | **Short click** encoder | Open printer / open Actions / confirm |
 | **Long-press** encoder (~0.7s) | **Back** (detail → fleet list, actions → detail) |
 | Actions → **Back** | Same as long-press from the Actions screen |
+| **Pause / Cancel / E-Stop** | Ask for **Yes / No** confirmation (defaults to No) |
 
 Hint on the status page: `Click actions · hold back`.
 

@@ -13,10 +13,12 @@ namespace {
 BoardDisplay tft;
 lgfx::LGFX_Sprite canvas(&tft);
 
-enum class Screen : uint8_t { List, Detail, Actions, Setup, LanReady };
+enum class Screen : uint8_t { List, Detail, Actions, Confirm, Setup, LanReady };
 Screen screen = Screen::List;
 int selected = 0;
 int actionIndex = 0;
+int confirmAction = -1;  // pending Actions index awaiting Yes
+int confirmChoice = 1;   // 0 = Yes, 1 = No (default No)
 int detailPage = 0;  // 0 = status/temps, 1 = job/meta, 2 = camera (if snapshot URL)
 uint32_t lastPaint = 0;
 bool dirty = true;
@@ -322,6 +324,11 @@ void paintDetail() {
 const char* actionLabels[] = {"Pause", "Resume", "Cancel", "E-Stop", "Back"};
 constexpr int kActionCount = 5;
 
+bool actionNeedsConfirm(int idx) {
+  // Pause, Cancel, E-Stop — Resume and Back run immediately.
+  return idx == 0 || idx == 2 || idx == 3;
+}
+
 void paintActions() {
   canvas.fillScreen(COL_BG);
   drawTopBar("Actions");
@@ -350,6 +357,39 @@ void paintActions() {
     canvas.setTextDatum(textdatum_t::middle_center);
     canvas.setTextColor(fg, bg);
     canvas.drawString(actionLabels[i], x + w / 2, y + btnH / 2, &fonts::Font2);
+  }
+}
+
+void paintConfirm() {
+  canvas.fillScreen(COL_BG);
+  drawTopBar("Confirm");
+  canvas.fillRoundRect(10, 36, canvas.width() - 20, 56, 10, COL_PANEL);
+  canvas.setTextDatum(textdatum_t::middle_center);
+  canvas.setTextColor(COL_TEXT, COL_PANEL);
+  char line[40];
+  if (confirmAction == 3) snprintf(line, sizeof(line), "Emergency stop?");
+  else if (confirmAction == 2) snprintf(line, sizeof(line), "Cancel this print?");
+  else if (confirmAction == 0) snprintf(line, sizeof(line), "Pause this print?");
+  else snprintf(line, sizeof(line), "Confirm?");
+  canvas.drawString(line, canvas.width() / 2, 56, &fonts::Font2);
+  canvas.setTextColor(COL_MUTED, COL_PANEL);
+  canvas.drawString("Click to choose", canvas.width() / 2, 78, &fonts::Font0);
+
+  const char* choices[] = {"Yes", "No"};
+  const int btnW = 140;
+  const int btnH = 44;
+  const int gap = 12;
+  const int y = 110;
+  for (int i = 0; i < 2; i++) {
+    int x = 16 + i * (btnW + gap);
+    bool on = i == confirmChoice;
+    // Yes uses warn/err accent when confirming destructive actions.
+    uint16_t onBg = (i == 0 && (confirmAction == 2 || confirmAction == 3)) ? COL_ERR : COL_ACCENT;
+    uint16_t bg = on ? onBg : COL_PANEL;
+    uint16_t fg = on ? COL_BG : COL_TEXT;
+    canvas.fillRoundRect(x, y, btnW, btnH, 8, bg);
+    canvas.setTextColor(fg, bg);
+    canvas.drawString(choices[i], x + btnW / 2, y + btnH / 2, &fonts::Font2);
   }
 }
 
@@ -390,6 +430,7 @@ void paint() {
     case Screen::List: paintList(); break;
     case Screen::Detail: paintDetail(); break;
     case Screen::Actions: paintActions(); break;
+    case Screen::Confirm: paintConfirm(); break;
     case Screen::Setup: paintSetup(); break;
     case Screen::LanReady: paintLanReady(); break;
   }
@@ -402,16 +443,38 @@ bool isStaticScreen() {
   return screen == Screen::Setup || screen == Screen::LanReady;
 }
 
-void runAction(int idx) {
+void executeAction(int idx) {
   switch (idx) {
     case 0: PrinterHub::pause(selected); break;
     case 1: PrinterHub::resume(selected); break;
     case 2: PrinterHub::cancel(selected); break;
     case 3: PrinterHub::estop(selected); break;
-    case 4: screen = Screen::Detail; dirty = true; return;
+    default: break;
   }
+  confirmAction = -1;
   screen = Screen::Detail;
   dirty = true;
+}
+
+void runAction(int idx) {
+  PrinterActions a = PrinterHub::actionsAt(selected);
+  bool enabled[] = {a.canPause, a.canResume, a.canCancel, a.canEstop, true};
+  if (idx < 0 || idx >= kActionCount) return;
+  if (!enabled[idx]) return;
+
+  if (idx == 4) {
+    screen = Screen::Detail;
+    dirty = true;
+    return;
+  }
+  if (actionNeedsConfirm(idx)) {
+    confirmAction = idx;
+    confirmChoice = 1;  // default to No
+    screen = Screen::Confirm;
+    dirty = true;
+    return;
+  }
+  executeAction(idx);
 }
 
 void writeBmpHeader(uint8_t* hdr, int w, int h, size_t pixelBytes) {
@@ -569,6 +632,24 @@ void loop() {
     }
     if (click) runAction(actionIndex);
     if (back) screen = Screen::Detail;
+  } else if (screen == Screen::Confirm) {
+    if (d) {
+      confirmChoice += (d > 0 ? 1 : -1);
+      if (confirmChoice < 0) confirmChoice = 1;
+      if (confirmChoice > 1) confirmChoice = 0;
+    }
+    if (click) {
+      if (confirmChoice == 0 && confirmAction >= 0) executeAction(confirmAction);
+      else {
+        confirmAction = -1;
+        screen = Screen::Actions;
+        dirty = true;
+      }
+    }
+    if (back) {
+      confirmAction = -1;
+      screen = Screen::Actions;
+    }
   } else if (screen == Screen::Setup) {
     // Stay put on setup — only leave on intentional click (not a held/noisy key)
     if (click) screen = Screen::List;
