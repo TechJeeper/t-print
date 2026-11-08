@@ -12,6 +12,17 @@ Icons in the setup UI and web flasher come from [Iconify](https://icon-sets.icon
 - **Browser flasher** (`flasher/`) via ESP Web Tools
 - Optional camera snapshots (Klipper webcam URL, PrusaLink snap, Bambu A1/P1 LAN JPEG)
 
+## Device controls
+
+| Input | Action |
+|-------|--------|
+| **Turn** encoder | Move selection / change detail page (1/3 → 2/3 → 3/3) |
+| **Short click** encoder | Open printer / open Actions / confirm |
+| **Long-press** encoder (~0.7s) | **Back** (detail → fleet list, actions → detail) |
+| Actions → **Back** | Same as long-press from the Actions screen |
+
+Hint on the status page: `Click actions · hold back`.
+
 ## Quick start (web flasher)
 
 1. Build firmware (below) so `flasher/*.bin` is populated.

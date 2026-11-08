@@ -11,7 +11,10 @@ int lastPos = 0;
 int pendingDelta = 0;
 bool lastBtn = false;
 bool clickPending = false;
+bool longPressPending = false;
+bool longPressFired = false;
 uint32_t btnDownMs = 0;
+constexpr uint32_t kEncoderLongMs = 700;
 bool lastUserKey = false;
 bool userKeyClickPending = false;
 uint32_t userKeyDownMs = 0;
@@ -88,8 +91,15 @@ void tickEncoder() {
   bool btn = digitalRead(ENCODER_KEY) == LOW;
   if (btn && !lastBtn) {
     btnDownMs = millis();
+    longPressFired = false;
+  } else if (btn && lastBtn) {
+    if (!longPressFired && (millis() - btnDownMs >= kEncoderLongMs)) {
+      longPressPending = true;
+      longPressFired = true;
+    }
   } else if (!btn && lastBtn) {
-    if (millis() - btnDownMs < 800) clickPending = true;
+    // Short click only if we never crossed the long-press threshold.
+    if (!longPressFired && (millis() - btnDownMs < kEncoderLongMs)) clickPending = true;
   }
   lastBtn = btn;
 
@@ -113,6 +123,12 @@ bool encoderPressed() { return digitalRead(ENCODER_KEY) == LOW; }
 bool encoderClicked() {
   if (!clickPending) return false;
   clickPending = false;
+  return true;
+}
+
+bool encoderLongPressed() {
+  if (!longPressPending) return false;
+  longPressPending = false;
   return true;
 }
 

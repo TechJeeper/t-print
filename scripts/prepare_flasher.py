@@ -50,5 +50,15 @@ def prepare(source, target, env):
     (FLASH / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(f"flasher ready -> {FLASH}")
 
+    # Mirror into docs/ for GitHub Pages (only / or /docs are valid Pages paths).
+    docs = ROOT / "docs"
+    docs.mkdir(exist_ok=True)
+    for name in ("firmware.bin", "bootloader.bin", "partitions.bin", "boot_app0.bin", "manifest.json", "index.html"):
+        src = FLASH / name
+        if src.exists():
+            shutil.copy2(src, docs / name)
+    (docs / ".nojekyll").write_text("", encoding="utf-8")
+    print(f"pages mirror -> {docs}")
+
 
 env.AddPostAction("$BUILD_DIR/${PROGNAME}.bin", prepare)

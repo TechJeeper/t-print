@@ -148,7 +148,7 @@ void paintDetailPage0(const PrinterProfile* p, const PrinterState* st) {
   canvas.drawString(shortName, 12, 116, &fonts::Font0);
 
   canvas.setTextColor(COL_MUTED, COL_PANEL);
-  canvas.drawString("Click actions · turn more", 12, 148, &fonts::Font0);
+  canvas.drawString("Click actions · hold back", 12, 148, &fonts::Font0);
 
   // Right: temps + layer/eta
   canvas.fillRoundRect(164, 28, 152, 44, 8, COL_PANEL);
@@ -521,7 +521,8 @@ void loop() {
   Board::tickEncoder();
   int d = Board::encoderDelta();
   bool click = Board::encoderClicked();
-  bool back = Board::userKeyClicked();
+  // Prefer encoder long-press for Back (T-Embed has no dedicated back button for many users).
+  bool back = Board::encoderLongPressed() || Board::userKeyClicked();
 
   // Keep unprovisioned devices on the setup card without fighting other screens each frame.
   static bool offeredSetup = false;
