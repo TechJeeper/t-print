@@ -38,8 +38,9 @@ bool lcdAwake = true;
 
 void syncBacklight() {
   const uint16_t timeoutSec = ConfigStore::get().lcdTimeoutSec;
-  const bool wantOn =
-      timeoutSec == 0 || (millis() - Board::lastInputMs()) < (uint32_t)timeoutSec * 1000UL;
+  const bool timedOut =
+      timeoutSec != 0 && (millis() - Board::lastInputMs()) >= (uint32_t)timeoutSec * 1000UL;
+  const bool wantOn = !Board::displayForcedOff() && !timedOut;
   const uint8_t bri = wantOn ? (uint8_t)(ConfigStore::get().brightness * 2.55f) : 0;
   if (bri != appliedBl) {
     appliedBl = bri;
@@ -674,8 +675,19 @@ void loop() {
   Board::tickEncoder();
   int d = Board::encoderDelta();
   bool click = Board::encoderClicked();
-  // Prefer encoder long-press for Back (T-Embed has no dedicated back button for many users).
-  bool back = Board::encoderLongPressed() || Board::userKeyClicked();
+  // Encoder long-press = Back. Top button is reserved for display/power sleep.
+  bool back = Board::encoderLongPressed();
+
+  if (Board::userKeyLongPressed()) {
+    tft.setBrightness(0);
+    appliedBl = 0;
+    lcdAwake = false;
+    Board::enterDeepSleep();  // does not return
+  }
+  if (Board::userKeyClicked()) {
+    Board::setDisplayForcedOff(!Board::displayForcedOff());
+    dirty = true;
+  }
 
   const bool wasAwake = lcdAwake;
   syncBacklight();

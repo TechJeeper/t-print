@@ -124,13 +124,20 @@ void begin() {
   setAll(CRGB::White);
 }
 
+void shutdown() {
+  applyBrightness(kBriBright);
+  setAll(CRGB::Black);
+  FastLED.show();
+}
+
 void loop() {
   const bool error = fleetHasError();
   const bool printing = fleetPrinting();
   const uint32_t now = millis();
-  const bool idleTimeout = (now - Board::lastInputMs()) >= kDimAfterMs;
+  const bool idleTimeout =
+      Board::displayForcedOff() || (now - Board::lastInputMs()) >= kDimAfterMs;
 
-  // Idle white: turn fully off after timeout. Active/error colors dim instead.
+  // Idle white: turn fully off after timeout / forced display-off. Else dim.
   if (!error && !printing && idleTimeout) {
     applyBrightness(kBriBright);
     if (now - lastLedMs >= 350) {
