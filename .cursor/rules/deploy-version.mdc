@@ -1,0 +1,15 @@
+---
+description: On GitHub deploy, always bump the project version before pushing
+alwaysApply: true
+---
+
+# Deploy version bump
+
+Whenever deploying this project to GitHub (source push, flasher/docs update, and/or GitHub Pages):
+
+1. **Bump the version first** — patch by default (`1.2.3` → `1.2.4`). Use minor/major only if the user asks.
+2. Single source of truth: root `VERSION` file (semver `MAJOR.MINOR.PATCH`).
+3. Run `python scripts/bump_version.py` (patch) **before** the release build, or `python scripts/bump_version.py --set X.Y.Z` when a specific version is requested.
+4. Rebuild firmware so `flasher/` and `docs/` pick up the new version (`prepare_flasher.py` reads `VERSION`).
+5. Commit the version bump together with the deploy (`VERSION`, `platformio.ini` / generated artifacts as applicable, `flasher/`, `docs/`).
+6. Do **not** deploy without incrementing `VERSION` relative to what's already on `origin/main`.

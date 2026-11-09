@@ -9,6 +9,7 @@ uint8_t batteryPercent();
 bool batteryCharging();
 void setStatusLed(uint8_t r, uint8_t g, uint8_t b);
 void tickEncoder();
+uint32_t lastInputMs();  // millis() of last encoder/key activity
 int encoderDelta();
 bool encoderPressed();
 bool encoderClicked();       // short press release

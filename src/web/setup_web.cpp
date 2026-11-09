@@ -112,6 +112,7 @@ void begin() {
     doc["ip"] = WifiManager::ipString();
     doc["ssid"] = WiFi.SSID();
     doc["brightness"] = ConfigStore::get().brightness;
+    doc["lcdTimeoutSec"] = ConfigStore::get().lcdTimeoutSec;
     doc["alarmOnError"] = ConfigStore::get().alarmOnError;
     doc["mdns"] = String(ConfigStore::get().deviceName) + ".local";
     sendJson(req, doc);
@@ -213,6 +214,12 @@ void begin() {
                 if (b < 5) b = 5;
                 if (b > 100) b = 100;
                 cfg.brightness = (uint8_t)b;
+              }
+              if (doc["lcdTimeoutSec"].is<int>()) {
+                int t = doc["lcdTimeoutSec"] | 300;
+                if (t < 0) t = 0;
+                if (t > 3600) t = 3600;
+                cfg.lcdTimeoutSec = (uint16_t)t;
               }
               if (!doc["alarmOnError"].isNull()) {
                 cfg.alarmOnError = doc["alarmOnError"] | false;

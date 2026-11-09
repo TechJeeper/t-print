@@ -108,6 +108,11 @@ bool pollKlipperAt(const PrinterProfile& p, uint16_t port, PrinterState& out) {
   out.bedTemp = st["heater_bed"]["temperature"] | 0.0f;
   out.bedTarget = st["heater_bed"]["target"] | 0.0f;
 
+  // Slicer-injected via SET_PRINT_STATS_INFO (Mainsail/Fluidd layer display).
+  JsonVariant info = st["print_stats"]["info"];
+  out.layer = info["current_layer"] | 0;
+  out.layerCount = info["total_layer"] | 0;
+
   float printDur = st["print_stats"]["print_duration"] | 0.0f;
   float progressFrac = st["virtual_sdcard"]["progress"] | 0.0f;
   if (progressFrac > 0.01f && printDur > 0) {

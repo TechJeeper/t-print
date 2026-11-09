@@ -11,8 +11,9 @@ struct DeviceConfig {
   char wifiSsid[kSsidLen];
   char wifiPass[kPassLen];
   char deviceName[kDeviceNameLen];
-  uint8_t brightness;  // 0-100
-  bool alarmOnError;   // beep when any printer errors
+  uint8_t brightness;     // 0-100
+  uint16_t lcdTimeoutSec; // 0 = never; otherwise seconds until backlight off
+  bool alarmOnError;      // beep when any printer errors
   uint8_t printerCount;
   PrinterProfile printers[kMaxPrinters];
   bool wifiConfigured;

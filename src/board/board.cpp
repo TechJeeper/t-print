@@ -18,8 +18,11 @@ constexpr uint32_t kEncoderLongMs = 700;
 bool lastUserKey = false;
 bool userKeyClickPending = false;
 uint32_t userKeyDownMs = 0;
+uint32_t lastInputAtMs = 0;
 
 void IRAM_ATTR onEncoder() { encoder.tick(); }
+
+void noteInput() { lastInputAtMs = millis(); }
 
 bool i2cOk = false;
 }  // namespace
@@ -43,6 +46,7 @@ void begin() {
   attachInterrupt(digitalPinToInterrupt(ENCODER_INA), onEncoder, CHANGE);
   attachInterrupt(digitalPinToInterrupt(ENCODER_INB), onEncoder, CHANGE);
   lastPos = encoder.getPosition();
+  lastInputAtMs = millis();
 
   Wire.begin(BOARD_I2C_SDA, BOARD_I2C_SCL);
   Wire.beginTransmission(BQ25896_ADDR);
@@ -85,14 +89,18 @@ void setStatusLed(uint8_t r, uint8_t g, uint8_t b) {
 void tickEncoder() {
   encoder.tick();
   int pos = encoder.getPosition();
-  pendingDelta += (pos - lastPos);
+  int d = pos - lastPos;
+  pendingDelta += d;
   lastPos = pos;
+  if (d) noteInput();
 
   bool btn = digitalRead(ENCODER_KEY) == LOW;
   if (btn && !lastBtn) {
     btnDownMs = millis();
     longPressFired = false;
+    noteInput();
   } else if (btn && lastBtn) {
+    noteInput();
     if (!longPressFired && (millis() - btnDownMs >= kEncoderLongMs)) {
       longPressPending = true;
       longPressFired = true;
@@ -106,11 +114,16 @@ void tickEncoder() {
   bool uk = digitalRead(BOARD_USER_KEY) == LOW;
   if (uk && !lastUserKey) {
     userKeyDownMs = millis();
+    noteInput();
+  } else if (uk && lastUserKey) {
+    noteInput();
   } else if (!uk && lastUserKey) {
     if (millis() - userKeyDownMs < 800) userKeyClickPending = true;
   }
   lastUserKey = uk;
 }
+
+uint32_t lastInputMs() { return lastInputAtMs; }
 
 int encoderDelta() {
   int d = pendingDelta;

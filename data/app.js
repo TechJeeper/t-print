@@ -85,6 +85,7 @@ async function refreshStatus() {
   form.deviceName.value = s.deviceName || "";
   form.brightness.value = s.brightness || 80;
   $("#briVal").textContent = `${form.brightness.value}%`;
+  form.lcdTimeout.value = String(s.lcdTimeoutSec ?? 300);
   form.alarmOnError.checked = !!s.alarmOnError;
   $("#deviceMeta").textContent = `v${s.version} · http://${s.mdns} · ${s.ip}`;
   return s;
@@ -399,6 +400,7 @@ function bindForms() {
       body: JSON.stringify({
         deviceName: fd.get("deviceName"),
         brightness: Number(fd.get("brightness")),
+        lcdTimeoutSec: Number(fd.get("lcdTimeout")),
         alarmOnError: !!e.target.alarmOnError.checked,
       }),
     });

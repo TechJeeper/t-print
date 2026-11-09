@@ -33,6 +33,20 @@ uint32_t camFetchedMs = 0;
 int camFetchedFor = -1;
 bool camFetching = false;
 char camStatus[40] = {0};
+uint8_t appliedBl = 255;
+bool lcdAwake = true;
+
+void syncBacklight() {
+  const uint16_t timeoutSec = ConfigStore::get().lcdTimeoutSec;
+  const bool wantOn =
+      timeoutSec == 0 || (millis() - Board::lastInputMs()) < (uint32_t)timeoutSec * 1000UL;
+  const uint8_t bri = wantOn ? (uint8_t)(ConfigStore::get().brightness * 2.55f) : 0;
+  if (bri != appliedBl) {
+    appliedBl = bri;
+    tft.setBrightness(bri);
+  }
+  lcdAwake = wantOn;
+}
 
 constexpr uint16_t COL_BG = 0x0841;
 constexpr uint16_t COL_PANEL = 0x10A3;
@@ -184,6 +198,23 @@ void paintDetailPage0(const PrinterProfile* p, const PrinterState* st) {
   canvas.drawString(buf, 250, 142, &fonts::Font2);
 }
 
+void fitText(char* dst, size_t dstLen, const char* src, int maxPx) {
+  if (!dst || !dstLen) return;
+  dst[0] = 0;
+  if (!src || !src[0]) return;
+  strlcpy(dst, src, dstLen);
+  if (canvas.textWidth(dst, &fonts::Font0) <= maxPx) return;
+  const char* ell = "...";
+  const int ellW = canvas.textWidth(ell, &fonts::Font0);
+  size_t n = strlen(dst);
+  while (n > 0) {
+    n--;
+    dst[n] = 0;
+    if (canvas.textWidth(dst, &fonts::Font0) + ellW <= maxPx) break;
+  }
+  strlcat(dst, ell, dstLen);
+}
+
 void paintDetailPage1(const PrinterProfile* p, const PrinterState* st) {
   canvas.fillRoundRect(4, 28, 312, 138, 8, COL_PANEL);
   canvas.setTextDatum(textdatum_t::top_left);
@@ -195,9 +226,10 @@ void paintDetailPage1(const PrinterProfile* p, const PrinterState* st) {
     canvas.drawString(label, 14, y, &fonts::Font0);
     canvas.setTextColor(COL_TEXT, COL_PANEL);
     canvas.drawString(value, 90, y, &fonts::Font0);
-    y += 16;
+    y += 15;
   };
 
+  // Temps live on the status page — keep this page to job/meta so FILE fits.
   snprintf(buf, sizeof(buf), "%s", printerTypeName(p->type));
   row("TYPE", buf);
   snprintf(buf, sizeof(buf), "%s:%u", p->host, (unsigned)p->port);
@@ -208,24 +240,23 @@ void paintDetailPage1(const PrinterProfile* p, const PrinterState* st) {
   formatEta(st->etaSeconds, buf, sizeof(buf));
   row("ETA", buf);
   if (st->layerCount > 0) snprintf(buf, sizeof(buf), "%d / %d", st->layer, st->layerCount);
-  else snprintf(buf, sizeof(buf), "%d", st->layer);
+  else if (st->layer > 0) snprintf(buf, sizeof(buf), "%d", st->layer);
+  else snprintf(buf, sizeof(buf), "--");
   row("LAYER", buf);
-  snprintf(buf, sizeof(buf), "%.1f -> %.0f C", st->nozzleTemp, st->nozzleTarget);
-  row("NOZZLE", buf);
-  snprintf(buf, sizeof(buf), "%.1f -> %.0f C", st->bedTemp, st->bedTarget);
-  row("BED", buf);
 
   if (st->message[0]) {
     canvas.setTextColor(COL_WARN, COL_PANEL);
-    char msg[40];
-    strlcpy(msg, st->message, sizeof(msg));
-    canvas.drawString(msg, 14, y, &fonts::Font0);
-  } else if (st->filename[0]) {
-    canvas.setTextColor(COL_MUTED, COL_PANEL);
-    char msg[40];
-    strlcpy(msg, st->filename, sizeof(msg));
-    canvas.drawString(msg, 14, y, &fonts::Font0);
+    fitText(buf, sizeof(buf), st->message, 290);
+    canvas.drawString(buf, 14, y, &fonts::Font0);
+    y += 15;
   }
+
+  canvas.setTextColor(COL_MUTED, COL_PANEL);
+  canvas.drawString("FILE", 14, y, &fonts::Font0);
+  canvas.setTextColor(COL_TEXT, COL_PANEL);
+  if (st->filename[0]) fitText(buf, sizeof(buf), st->filename, 220);
+  else strlcpy(buf, "(none)", sizeof(buf));
+  canvas.drawString(buf, 90, y, &fonts::Font0);
 }
 
 bool printerHasCamera(const PrinterProfile* p) {
@@ -564,7 +595,9 @@ void begin() {
   tft.init();
   // LilyGO landscape for T-Embed CC1101 is rotation 3 (320×170).
   tft.setRotation(3);
-  tft.setBrightness((uint8_t)(ConfigStore::get().brightness * 2.55f));
+  appliedBl = 255;
+  lcdAwake = true;
+  syncBacklight();
 
   // Offscreen canvas in PSRAM for clean UI + screenshots
   canvas.setColorDepth(16);
@@ -644,6 +677,16 @@ void loop() {
   // Prefer encoder long-press for Back (T-Embed has no dedicated back button for many users).
   bool back = Board::encoderLongPressed() || Board::userKeyClicked();
 
+  const bool wasAwake = lcdAwake;
+  syncBacklight();
+  // First input after sleep only wakes the display — don't navigate.
+  if (!wasAwake && lcdAwake) {
+    dirty = true;
+    d = 0;
+    click = false;
+    back = false;
+  }
+
   // Keep unprovisioned devices on the setup card without fighting other screens each frame.
   static bool offeredSetup = false;
   if (WifiManager::isSoftAP() && !WifiManager::isConnected() && PrinterHub::count() == 0 &&
@@ -713,6 +756,8 @@ void loop() {
   } else if (screen == Screen::LanReady) {
     if (click || back) screen = Screen::List;
   }
+
+  if (!lcdAwake) return;
 
   // Paint before any network work so encoder page turns stay snappy.
   const bool due = !isStaticScreen() && (millis() - lastPaint > 2000);

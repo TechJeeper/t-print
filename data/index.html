@@ -121,7 +121,7 @@
       <section id="tab-device" class="stage" role="tabpanel" hidden>
         <div class="stage-head">
           <h2>Device</h2>
-          <p>Name, screen brightness, and error alerts for the RGB bar + speaker.</p>
+          <p>Name, screen brightness, timeout, and error alerts for the RGB bar + speaker.</p>
         </div>
 
         <form id="deviceForm" class="form-block">
@@ -136,6 +136,20 @@
               <span id="briVal" class="metric">80%</span>
             </div>
             <input id="brightness" name="brightness" type="range" min="5" max="100" value="80" />
+          </div>
+
+          <div class="field">
+            <label for="lcdTimeout">Screen timeout</label>
+            <select id="lcdTimeout" name="lcdTimeout">
+              <option value="0">Never</option>
+              <option value="15">15 seconds</option>
+              <option value="30">30 seconds</option>
+              <option value="60">1 minute</option>
+              <option value="120">2 minutes</option>
+              <option value="300" selected>5 minutes</option>
+              <option value="600">10 minutes</option>
+            </select>
+            <small class="hint">Turns the LCD backlight off after idle. Touch the encoder to wake.</small>
           </div>
 
           <label class="switch-row" for="alarmOnError">

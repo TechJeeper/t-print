@@ -4,6 +4,7 @@
 #include <FastLED.h>
 #include <driver/i2s.h>
 
+#include "board.h"
 #include "board_pins.h"
 #include "config_store.h"
 #include "printer_hub.h"
@@ -15,6 +16,11 @@ bool wasInError = false;
 uint32_t lastBeepMs = 0;
 uint32_t lastLedMs = 0;
 bool blinkOn = false;
+uint8_t currentBri = 0;
+
+constexpr uint8_t kBriBright = 48;
+constexpr uint8_t kBriDim = 8;
+constexpr uint32_t kDimAfterMs = 60000;
 
 bool fleetHasError() {
   size_t n = PrinterHub::count();
@@ -28,22 +34,27 @@ bool fleetHasError() {
   return false;
 }
 
-bool fleetAllGood() {
+bool fleetPrinting() {
   size_t n = PrinterHub::count();
-  if (n == 0) return true;  // no fleet configured — idle green
   for (size_t i = 0; i < n; i++) {
     const PrinterState* st = PrinterHub::stateAt(i);
-    if (!st) continue;
-    if (st->status == PrinterStatus::Error || st->status == PrinterStatus::Attention) {
-      return false;
+    if (!st || !st->online) continue;
+    if (st->status == PrinterStatus::Printing || st->status == PrinterStatus::Paused) {
+      return true;
     }
   }
-  return true;
+  return false;
 }
 
 void setAll(CRGB c) {
   for (int i = 0; i < WS2812_NUM_LEDS; i++) leds[i] = c;
   FastLED.show();
+}
+
+void applyBrightness(uint8_t bri) {
+  if (bri == currentBri) return;
+  currentBri = bri;
+  FastLED.setBrightness(bri);
 }
 
 bool ensureI2s() {
@@ -109,23 +120,42 @@ void begin() {
   pinMode(BOARD_PWR_EN, OUTPUT);
   digitalWrite(BOARD_PWR_EN, HIGH);  // powers WS2812 rail
   FastLED.addLeds<WS2812B, WS2812_DATA_PIN, GRB>(leds, WS2812_NUM_LEDS);
-  FastLED.setBrightness(48);
-  setAll(CRGB::Green);
+  applyBrightness(kBriBright);
+  setAll(CRGB::White);
 }
 
 void loop() {
   const bool error = fleetHasError();
+  const bool printing = fleetPrinting();
   const uint32_t now = millis();
+  const bool idleTimeout = (now - Board::lastInputMs()) >= kDimAfterMs;
 
-  if (now - lastLedMs >= 350) {
-    lastLedMs = now;
-    blinkOn = !blinkOn;
-    if (error) {
-      setAll(blinkOn ? CRGB::Red : CRGB::Black);
-    } else if (fleetAllGood()) {
-      setAll(CRGB(0, 180, 40));  // solid green — fleet OK
-    } else {
-      setAll(CRGB(0, 180, 40));
+  // Idle white: turn fully off after timeout. Active/error colors dim instead.
+  if (!error && !printing && idleTimeout) {
+    applyBrightness(kBriBright);
+    if (now - lastLedMs >= 350) {
+      lastLedMs = now;
+      setAll(CRGB::Black);
+    }
+  } else {
+    applyBrightness(idleTimeout ? kBriDim : kBriBright);
+    if (now - lastLedMs >= 350) {
+      lastLedMs = now;
+      blinkOn = !blinkOn;
+      if (error) {
+        setAll(blinkOn ? CRGB::Red : CRGB::Black);
+      } else if (printing) {
+        setAll(CRGB(0, 180, 40));
+      } else {
+        setAll(CRGB::White);
+      }
+    } else if (!error) {
+      static bool wasIdleTimeout = false;
+      if (wasIdleTimeout != idleTimeout) {
+        if (printing) setAll(CRGB(0, 180, 40));
+        else setAll(CRGB::White);
+      }
+      wasIdleTimeout = idleTimeout;
     }
   }
 

@@ -12,6 +12,7 @@ void defaults() {
   memset(&cfg, 0, sizeof(cfg));
   strncpy(cfg.deviceName, "t-print", kDeviceNameLen - 1);
   cfg.brightness = 80;
+  cfg.lcdTimeoutSec = 300;
   cfg.alarmOnError = false;
   cfg.printerCount = 0;
   cfg.wifiConfigured = false;
@@ -40,6 +41,7 @@ bool load() {
   strlcpy(cfg.wifiPass, doc["wifiPass"] | "", kPassLen);
   strlcpy(cfg.deviceName, doc["deviceName"] | "t-print", kDeviceNameLen);
   cfg.brightness = doc["brightness"] | 80;
+  cfg.lcdTimeoutSec = doc["lcdTimeoutSec"] | 300;
   cfg.alarmOnError = doc["alarmOnError"] | false;
   cfg.wifiConfigured = doc["wifiConfigured"] | (cfg.wifiSsid[0] != 0);
 
@@ -74,6 +76,7 @@ bool save() {
   doc["wifiPass"] = cfg.wifiPass;
   doc["deviceName"] = cfg.deviceName;
   doc["brightness"] = cfg.brightness;
+  doc["lcdTimeoutSec"] = cfg.lcdTimeoutSec;
   doc["alarmOnError"] = cfg.alarmOnError;
   doc["wifiConfigured"] = cfg.wifiConfigured;
   JsonArray arr = doc["printers"].to<JsonArray>();
