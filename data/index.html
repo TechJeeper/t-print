@@ -102,16 +102,22 @@
             <h2>Your fleet</h2>
             <p>Scan the LAN for Klipper, PrusaLink, and Bambu MQTT — or add manually.</p>
           </div>
-          <div class="row" style="gap:.45rem">
+          <button id="btnAdd" class="btn btn-primary" type="button">
+            <iconify-icon icon="mdi:plus" width="18"></iconify-icon>
+            Add
+          </button>
+        </div>
+        <div class="field discover-range">
+          <label for="discoverRange">Scan range</label>
+          <div class="field-row gap">
+            <input id="discoverRange" type="text" inputmode="decimal" autocomplete="off"
+              placeholder="192.168.1 or 192.168.0-10" />
             <button id="btnDiscover" class="btn btn-ghost" type="button">
               <iconify-icon icon="mdi:radar" width="18"></iconify-icon>
-              Scan network
-            </button>
-            <button id="btnAdd" class="btn btn-primary" type="button">
-              <iconify-icon icon="mdi:plus" width="18"></iconify-icon>
-              Add
+              Scan
             </button>
           </div>
+          <span class="hint">Scans .1–.254 on each subnet. Use <code>192.168.0-5</code> for multiple /24s (max 16).</span>
         </div>
         <div id="printerTestBanner" class="toast sticky-toast" hidden></div>
         <div id="discoverList" class="stack"></div>

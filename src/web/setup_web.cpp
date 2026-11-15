@@ -258,14 +258,17 @@ void begin() {
               sendJson(req, res, 201);
             });
 
-  // SoftAP-safe discover: POST starts, GET polls (full /24 must not block HTTP).
+  // SoftAP-safe discover: POST starts, GET polls (must not block HTTP).
+  // Optional ?range=192.168.1 or ?range=192.168.0-10 (third-octet span, max 16).
   server.on("/api/discover", HTTP_POST, [](AsyncWebServerRequest* req) {
     if (!WifiManager::isConnected()) {
       req->send(400, "application/json",
                 "{\"error\":\"Join home Wi-Fi first, then open setup from the device IP\"}");
       return;
     }
-    if (!PrinterDiscover::start()) {
+    String range;
+    if (req->hasArg("range")) range = req->arg("range");
+    if (!PrinterDiscover::start(range.length() ? range.c_str() : nullptr)) {
       JsonDocument doc;
       doc["ok"] = false;
       doc["status"] = "failed";
@@ -277,6 +280,7 @@ void begin() {
     doc["ok"] = true;
     doc["status"] = "running";
     doc["progress"] = PrinterDiscover::progress();
+    doc["range"] = PrinterDiscover::rangeLabel();
     sendJson(req, doc);
   });
 
@@ -291,6 +295,7 @@ void begin() {
     doc["status"] = status;
     doc["progress"] = PrinterDiscover::progress();
     doc["count"] = PrinterDiscover::count();
+    doc["range"] = PrinterDiscover::rangeLabel();
     if (st == DiscoverStatus::Failed) doc["error"] = PrinterDiscover::error();
     JsonArray arr = doc["printers"].to<JsonArray>();
     const DiscoveredPrinter* found = PrinterDiscover::results();

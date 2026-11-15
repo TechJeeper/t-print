@@ -17,10 +17,12 @@ enum class DiscoverStatus : uint8_t { Idle = 0, Running, Done, Failed };
 
 namespace PrinterDiscover {
 // SoftAP/LAN-safe discovery: start + poll from loop(). Never block HTTP handlers.
-bool start();
+// range: nullptr/empty = device /24; "192.168.1" or "192.168.0-10" (third-octet span, max 16).
+bool start(const char* range = nullptr);
 void loop();
 DiscoverStatus status();
 const char* error();
+const char* rangeLabel();  // human-readable range being scanned
 size_t count();
 const DiscoveredPrinter* results();
 uint8_t progress();  // 0-100 while running

@@ -69,7 +69,7 @@ python -m platformio run -t upload
 | PUT/DELETE | `/api/printers/:id` | Update / remove |
 | POST | `/api/printers/:id/test` | Connectivity test |
 | POST | `/api/test-printer` | Test unsaved profile |
-| POST | `/api/discover` | LAN printer discovery |
+| POST | `/api/discover` | LAN printer discovery (`?range=192.168.1` or `192.168.0-10`) |
 | PUT | `/api/device` | Name / brightness |
 | POST | `/api/factory-reset` | Wipe + reboot |
 

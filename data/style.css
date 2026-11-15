@@ -652,6 +652,13 @@ body[data-ptype="bambu"] .type-prusa { display: none; }
   font-size: 0.78rem;
   line-height: 1.35;
 }
+.field .hint code {
+  font-size: 0.85em;
+  color: var(--accent-2);
+}
+.discover-range {
+  margin: 0 0 1rem;
+}
 .cam-preview {
   display: none;
   gap: 0.55rem;

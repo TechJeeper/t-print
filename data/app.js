@@ -46,6 +46,33 @@ function escapeHtml(s) {
   })[c]);
 }
 
+/** Prefill from device IP: 192.168.1.42 → 192.168.1 */
+function subnetPrefixFromIp(ip) {
+  const m = String(ip || "").match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\./);
+  return m ? `${m[1]}.${m[2]}.${m[3]}` : "";
+}
+
+/** How many /24s a range covers (for poll timeout). */
+function discoverRangeSpan(range) {
+  const s = String(range || "").trim();
+  if (!s) return 1;
+  const ranged = s.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\s*-\s*(\d{1,3})/);
+  if (ranged) {
+    const a = Number(ranged[3]);
+    const b = Number(ranged[4]);
+    if (Number.isFinite(a) && Number.isFinite(b)) return Math.max(1, Math.abs(b - a) + 1);
+  }
+  return 1;
+}
+
+function ensureDiscoverRange(ip) {
+  const input = $("#discoverRange");
+  if (!input || input.value.trim()) return;
+  let saved = "";
+  try { saved = localStorage.getItem("discoverRange") || ""; } catch (_) {}
+  input.value = saved || subnetPrefixFromIp(ip) || "";
+}
+
 function showPostWifiBanner(ip) {
   const banner = $("#postWifiBanner");
   const text = $("#postWifiText");
@@ -88,6 +115,7 @@ async function refreshStatus() {
   form.lcdTimeout.value = String(s.lcdTimeoutSec ?? 300);
   form.alarmOnError.checked = !!s.alarmOnError;
   $("#deviceMeta").textContent = `v${s.version} · http://${s.mdns} · ${s.ip}`;
+  if (s.wifiConnected) ensureDiscoverRange(s.ip);
   return s;
 }
 
@@ -438,23 +466,41 @@ function bindForms() {
   $("#btnClosePrinter").onclick = () => $("#printerDialog").close();
 
   const discoverBtn = $("#btnDiscover");
+  const discoverRangeInput = $("#discoverRange");
+  if (discoverRangeInput) {
+    discoverRangeInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        discoverBtn?.click();
+      }
+    });
+  }
   if (discoverBtn) {
     discoverBtn.onclick = async () => {
       const box = $("#discoverList");
+      const rangeInput = $("#discoverRange");
+      const range = (rangeInput?.value || "").trim();
       discoverBtn.disabled = true;
-      box.innerHTML = `<div class="empty">Scanning LAN for printers…</div>`;
-      setToast($("#printerTestBanner"), "Scanning network for printers…");
+      if (rangeInput) rangeInput.disabled = true;
+      if (range) {
+        try { localStorage.setItem("discoverRange", range); } catch (_) {}
+      }
+      const span = discoverRangeSpan(range);
+      box.innerHTML = `<div class="empty">Scanning ${escapeHtml(range || "LAN")}…</div>`;
+      setToast($("#printerTestBanner"), `Scanning ${range || "network"}…`);
       try {
-        await api("/api/discover", { method: "POST" });
+        const qs = range ? `?range=${encodeURIComponent(range)}` : "";
+        await api(`/api/discover${qs}`, { method: "POST" });
         let st = null;
-        const deadline = Date.now() + 90000;
+        const deadline = Date.now() + Math.min(15 * 60 * 1000, 90000 * Math.max(1, span));
         while (Date.now() < deadline) {
           await new Promise((r) => setTimeout(r, 700));
           st = await api("/api/discover");
           const pct = st.progress || 0;
           const n = st.count || 0;
-          box.innerHTML = `<div class="empty">Scanning… ${pct}%${n ? ` · ${n} found` : ""}</div>`;
-          setToast($("#printerTestBanner"), `Scanning… ${pct}%`);
+          const label = st.range || range || "LAN";
+          box.innerHTML = `<div class="empty">Scanning ${escapeHtml(label)}… ${pct}%${n ? ` · ${n} found` : ""}</div>`;
+          setToast($("#printerTestBanner"), `Scanning ${label}… ${pct}%`);
           if (st.status === "done" || st.status === "failed") break;
         }
         if (!st || st.status === "failed") {
@@ -462,7 +508,7 @@ function bindForms() {
         }
         const found = st.printers || [];
         if (!found.length) {
-          box.innerHTML = `<div class="empty">No printers found. Check they're online on this Wi‑Fi, then try Add.</div>`;
+          box.innerHTML = `<div class="empty">No printers found in ${escapeHtml(st.range || range || "range")}. Check they're online, widen the range, or use Add.</div>`;
           setToast($("#printerTestBanner"), "No printers found on the LAN", false);
           return;
         }
@@ -490,6 +536,7 @@ function bindForms() {
         setToast($("#printerTestBanner"), e.message || "Scan failed", false);
       } finally {
         discoverBtn.disabled = false;
+        if (rangeInput) rangeInput.disabled = false;
       }
     };
   }
