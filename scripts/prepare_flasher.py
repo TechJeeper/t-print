@@ -67,6 +67,13 @@ def prepare(source, target, env):
         src = FLASH / name
         if src.exists():
             shutil.copy2(src, docs / name)
+    img_src = FLASH / "img"
+    if img_src.is_dir():
+        img_dst = docs / "img"
+        img_dst.mkdir(exist_ok=True)
+        for src in img_src.iterdir():
+            if src.is_file():
+                shutil.copy2(src, img_dst / src.name)
     (docs / ".nojekyll").write_text("", encoding="utf-8")
     print(f"pages mirror -> {docs}")
 

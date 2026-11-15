@@ -36,7 +36,7 @@ python -m http.server 8080 --directory flasher
 3. Open http://localhost:8080 — click **Install firmware**.
 4. Connect to Wi‑Fi **T-Print**, open http://192.168.4.1, join your home network, then reopen setup from the IP shown on the device.
 
-Hosted flasher: https://techjeeper.github.io/t-print/
+Hosted flasher: https://t-print.techjeeper.com/
 
 ## Versioning
 
