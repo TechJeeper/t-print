@@ -213,10 +213,13 @@ async function loadPrinters() {
       p.snapshotUrl || p.type === "prusa" || p.type === "bambu" || p.type === "klipper"
         ? ` · <iconify-icon icon="mdi:cctv" width="14"></iconify-icon> cam`
         : "";
+    const streamHint = p.streamUrl
+      ? ` · <iconify-icon icon="mdi:video-wireless" width="14"></iconify-icon> stream`
+      : "";
     el.innerHTML = `
       <div>
         <strong><iconify-icon icon="${typeIcon[p.type] || "mdi:printer-3d"}" width="18"></iconify-icon> ${escapeHtml(p.name)}</strong>
-        <small>${escapeHtml(p.type)} · ${escapeHtml(p.host)}${p.port ? ":" + p.port : ""}${camHint}</small>
+        <small>${escapeHtml(p.type)} · ${escapeHtml(p.host)}${p.port ? ":" + p.port : ""}${camHint}${streamHint}</small>
       </div>
       <div class="tile-actions">
         <button class="icon-btn" title="Test" data-act="test" type="button"><iconify-icon icon="mdi:connection" width="18"></iconify-icon></button>
@@ -260,11 +263,19 @@ function syncCamPlaceholders() {
   const host = (form.host.value || "").trim() || "192.168.1.50";
   const type = form.type.value;
   const hint = $("#snapHint");
+  const streamHint = $("#streamHint");
+  if (form.streamUrl) {
+    form.streamUrl.placeholder = `http://${host}/webcam/?action=stream`;
+  }
   if (type === "prusa") {
     form.snapshotUrl.placeholder = `http://${host}/api/v1/cameras/snap`;
     if (hint) {
       hint.textContent =
         "Optional. Leave blank to use PrusaLink /api/v1/cameras/snap (needs API key). Buddy3D RTSP isn’t supported on-device.";
+    }
+    if (streamHint) {
+      streamHint.textContent =
+        "Optional MJPEG (e.g. go2rtc). Adds a live page — 3/3 alone, or 4/4 with a snapshot.";
     }
   } else if (type === "bambu") {
     form.snapshotUrl.placeholder = "(auto A1/P1 LAN cam — or paste a JPEG proxy URL)";
@@ -272,11 +283,22 @@ function syncCamPlaceholders() {
       hint.textContent =
         "Optional. A1/P1 use the LAN JPEG cam automatically. X1 RTSPS isn’t decodeable here — use a go2rtc/JPEG proxy URL if needed.";
     }
+    if (form.streamUrl) {
+      form.streamUrl.placeholder = `http://${host}:1984/api/stream.mjpeg?src=bambu`;
+    }
+    if (streamHint) {
+      streamHint.textContent =
+        "Optional MJPEG proxy (go2rtc, etc.). Bambu LAN cam isn’t MJPEG — adds live page 4/4 with snapshot.";
+    }
   } else {
     form.snapshotUrl.placeholder = `http://${host}/webcam/snapshot.jpg`;
     if (hint) {
       hint.textContent =
-        "JPEG from crowsnest / webcamd — shown on the device camera page. Click Preview to check the URL.";
+        "JPEG still from crowsnest / webcamd — device page 3/3 (or 3/4 with a stream). Click Preview to check.";
+    }
+    if (streamHint) {
+      streamHint.textContent =
+        "MJPEG from crowsnest / mjpg-streamer — live page 3/3 without snapshot, 4/4 with one.";
     }
   }
 }
@@ -322,6 +344,7 @@ function openPrinterDialog(p) {
   form.serial.value = p?.serial || "";
   form.accessCode.value = p?.accessCode || "";
   form.snapshotUrl.value = p?.snapshotUrl || "";
+  if (form.streamUrl) form.streamUrl.value = p?.streamUrl || "";
   setToast($("#testMsg"), "");
   hideCamPreview();
   syncTypeFields();
@@ -340,10 +363,10 @@ function formPrinter() {
     serial: f.serial.value,
     accessCode: f.accessCode.value,
     snapshotUrl: (f.snapshotUrl.value || "").trim(),
+    streamUrl: (f.streamUrl?.value || "").trim(),
     enabled: true,
   };
 }
-
 function bindForms() {
   $("#btnScan").onclick = () => scanWifi().catch((e) => setToast($("#wifiMsg"), e.message, false));
 
