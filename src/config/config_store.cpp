@@ -62,7 +62,6 @@ bool load() {
     strlcpy(p.serial, o["serial"] | "", sizeof(p.serial));
     strlcpy(p.accessCode, o["accessCode"] | "", sizeof(p.accessCode));
     strlcpy(p.snapshotUrl, o["snapshotUrl"] | "", sizeof(p.snapshotUrl));
-    strlcpy(p.streamUrl, o["streamUrl"] | "", sizeof(p.streamUrl));
     p.enabled = o["enabled"] | true;
     if (p.port == 0) {
       if (p.type == PrinterType::Klipper) p.port = 7125;
@@ -96,7 +95,6 @@ bool save() {
     o["serial"] = p.serial;
     o["accessCode"] = p.accessCode;
     o["snapshotUrl"] = p.snapshotUrl;
-    o["streamUrl"] = p.streamUrl;
     o["enabled"] = p.enabled;
   }
   String json;

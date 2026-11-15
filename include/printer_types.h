@@ -29,7 +29,6 @@ struct PrinterProfile {
   char serial[32];      // Bambu
   char accessCode[16];  // Bambu LAN
   char snapshotUrl[128];  // e.g. http://host/webcam/snapshot.jpg
-  char streamUrl[128];    // MJPEG e.g. http://host/webcam/?action=stream
   bool enabled;
 };
 

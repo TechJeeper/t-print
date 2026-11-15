@@ -266,105 +266,6 @@ void buildDefaultUrl(const PrinterProfile& p, char* out, size_t outLen) {
     return;
   }
 }
-
-bool fetchMjpegFrame(const char* url, const char* apiKey, uint8_t** outBuf, size_t* outLen,
-                     CameraImageFormat* format, char* status, size_t statusLen) {
-  HTTPClient http;
-  http.setReuse(false);
-  http.setTimeout(8000);
-  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-
-  if (!http.begin(url)) {
-    snprintf(status, statusLen, "bad URL");
-    return false;
-  }
-  if (apiKey && apiKey[0]) http.addHeader("X-Api-Key", apiKey);
-  http.addHeader("Accept", "multipart/x-mixed-replace,image/jpeg,image/jpg,*/*");
-  http.setUserAgent("T-Print/1.0");
-
-  int code = http.GET();
-  if (code <= 0) {
-    snprintf(status, statusLen, "connect fail %d", code);
-    http.end();
-    return false;
-  }
-  if (code != 200) {
-    snprintf(status, statusLen, "HTTP %d", code);
-    http.end();
-    return false;
-  }
-
-  WiFiClient* stream = http.getStreamPtr();
-  if (!stream) {
-    snprintf(status, statusLen, "no body");
-    http.end();
-    return false;
-  }
-
-  uint8_t* buf = (uint8_t*)ps_malloc(kMaxImage);
-  if (!buf) buf = (uint8_t*)malloc(kMaxImage);
-  if (!buf) {
-    snprintf(status, statusLen, "out of memory");
-    http.end();
-    return false;
-  }
-
-  size_t len = 0;
-  bool inJpeg = false;
-  uint8_t prev = 0;
-  uint8_t chunk[512];
-  uint32_t deadline = millis() + 12000;
-  uint32_t idleStart = millis();
-
-  while (millis() < deadline && len < kMaxImage) {
-    int avail = stream->available();
-    if (avail <= 0) {
-      if (!stream->connected() && !http.connected()) break;
-      if (millis() - idleStart > 4000) break;
-      delay(1);
-      yield();
-      continue;
-    }
-    idleStart = millis();
-    size_t take = min((size_t)avail, sizeof(chunk));
-    int n = stream->readBytes(chunk, take);
-    if (n <= 0) continue;
-
-    for (int i = 0; i < n; i++) {
-      uint8_t cur = chunk[i];
-      if (!inJpeg) {
-        if (prev == 0xff && cur == 0xd8) {
-          inJpeg = true;
-          buf[0] = 0xff;
-          buf[1] = 0xd8;
-          len = 2;
-        }
-        prev = cur;
-        continue;
-      }
-      if (len >= kMaxImage) break;
-      buf[len++] = cur;
-      if (prev == 0xff && cur == 0xd9) {
-        http.end();
-        *format = CameraImageFormat::Jpeg;
-        *outBuf = buf;
-        *outLen = len;
-        snprintf(status, statusLen, "live %u KB", (unsigned)(len / 1024));
-        return true;
-      }
-      prev = cur;
-    }
-  }
-
-  http.end();
-  free(buf);
-  if (!inJpeg) {
-    snprintf(status, statusLen, "no JPEG in stream");
-  } else {
-    snprintf(status, statusLen, "stream truncated");
-  }
-  return false;
-}
 }  // namespace
 
 namespace CameraFetch {
@@ -376,8 +277,6 @@ bool available(const PrinterProfile& p) {
   if (p.type == PrinterType::Bambu && p.host[0] && p.accessCode[0]) return true;
   return false;
 }
-
-bool streamAvailable(const PrinterProfile& p) { return p.streamUrl[0] != 0; }
 
 bool fetch(const PrinterProfile& p, uint8_t** outBuf, size_t* outLen, CameraImageFormat* format,
            char* status, size_t statusLen) {
@@ -407,25 +306,6 @@ bool fetch(const PrinterProfile& p, uint8_t** outBuf, size_t* outLen, CameraImag
     return false;
   }
   return fetchHttp(url, p.apiKey, outBuf, outLen, format, status, statusLen);
-}
-
-bool fetchStreamFrame(const PrinterProfile& p, uint8_t** outBuf, size_t* outLen,
-                      CameraImageFormat* format, char* status, size_t statusLen) {
-  if (!outBuf || !outLen || !format || !status || !statusLen) return false;
-  *outBuf = nullptr;
-  *outLen = 0;
-  *format = CameraImageFormat::Unknown;
-  status[0] = 0;
-
-  if (WiFi.status() != WL_CONNECTED) {
-    snprintf(status, statusLen, "Wi-Fi down");
-    return false;
-  }
-  if (!p.streamUrl[0]) {
-    snprintf(status, statusLen, "no stream URL");
-    return false;
-  }
-  return fetchMjpegFrame(p.streamUrl, p.apiKey, outBuf, outLen, format, status, statusLen);
 }
 
 }  // namespace CameraFetch

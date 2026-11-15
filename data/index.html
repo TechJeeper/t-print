@@ -169,7 +169,7 @@
               <option value="120">2 minutes</option>
               <option value="300">5 minutes</option>
             </select>
-            <small class="hint">How often the snapshot page reloads while you’re viewing it. The MJPEG stream page refreshes on its own.</small>
+            <small class="hint">How often the printer camera page (3/3) reloads the snapshot while you’re viewing it.</small>
           </div>
 
           <label class="switch-row" for="alarmOnError">
@@ -277,13 +277,7 @@
               placeholder="http://192.168.1.50/webcam/snapshot.jpg" />
             <button type="button" class="btn btn-ghost btn-sm" id="btnCamPreview">Preview</button>
           </div>
-          <small class="hint" id="snapHint">JPEG still — device page 3/3 (or 3/4 with a stream). Preview only after you click Preview.</small>
-        </div>
-        <div class="field type-camera">
-          <label for="pstream">Stream URL</label>
-          <input id="pstream" name="streamUrl" autocomplete="off"
-            placeholder="http://192.168.1.50/webcam/?action=stream" />
-          <small class="hint" id="streamHint">Optional MJPEG stream — adds a live page (3/3 without snapshot, 4/4 with one).</small>
+          <small class="hint" id="snapHint">JPEG from crowsnest / webcamd — shown on the device camera page. Preview only after you click Preview.</small>
         </div>
         <div class="cam-preview type-camera" id="camPreview" hidden>
           <div class="cam-preview-head">

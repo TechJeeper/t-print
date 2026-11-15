@@ -40,7 +40,6 @@ PrinterProfile parsePrinter(JsonObject o, const char* existingId = nullptr) {
   strlcpy(p.serial, o["serial"] | "", sizeof(p.serial));
   strlcpy(p.accessCode, o["accessCode"] | "", sizeof(p.accessCode));
   strlcpy(p.snapshotUrl, o["snapshotUrl"] | "", sizeof(p.snapshotUrl));
-  strlcpy(p.streamUrl, o["streamUrl"] | "", sizeof(p.streamUrl));
   p.enabled = o["enabled"] | true;
   if (p.port == 0) {
     if (p.type == PrinterType::Klipper) p.port = 7125;
@@ -68,7 +67,6 @@ JsonObject printerToJson(JsonDocument& doc, JsonObject o, const PrinterProfile& 
   o["apiKey"] = ConfigStore::maskSecret(p.apiKey);
   o["accessCode"] = ConfigStore::maskSecret(p.accessCode);
   o["snapshotUrl"] = p.snapshotUrl;
-  o["streamUrl"] = p.streamUrl;
   o["enabled"] = p.enabled;
   return o;
 }

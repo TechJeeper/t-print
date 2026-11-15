@@ -19,7 +19,7 @@ int selected = 0;
 int actionIndex = 0;
 int confirmAction = -1;  // pending Actions index awaiting Yes
 int confirmChoice = 1;   // 0 = Yes, 1 = No (default No)
-int detailPage = 0;  // 0 = status, 1 = job, 2 = snapshot?, 3 = stream?
+int detailPage = 0;  // 0 = status/temps, 1 = job/meta, 2 = camera (if snapshot URL)
 uint32_t lastPaint = 0;
 bool dirty = true;
 char setupL1[48] = {0};
@@ -31,7 +31,6 @@ size_t camImgLen = 0;
 CameraImageFormat camFmt = CameraImageFormat::Unknown;
 uint32_t camFetchedMs = 0;
 int camFetchedFor = -1;
-int camFetchedKind = -1;  // 0 = snapshot, 1 = stream
 bool camFetching = false;
 char camStatus[40] = {0};
 uint8_t appliedBl = 255;
@@ -265,48 +264,8 @@ bool printerHasCamera(const PrinterProfile* p) {
   return p && CameraFetch::available(*p);
 }
 
-bool printerHasStream(const PrinterProfile* p) {
-  return p && CameraFetch::streamAvailable(*p);
-}
-
 int detailPageCount(const PrinterProfile* p) {
-  int n = 2;
-  if (printerHasCamera(p)) n++;
-  if (printerHasStream(p)) n++;
-  return n;
-}
-
-// Snapshot page index, or -1 if none.
-int snapshotPageIndex(const PrinterProfile* p) {
-  return printerHasCamera(p) ? 2 : -1;
-}
-
-// Stream page index: 2 when no snapshot page, 3 when snapshot exists; -1 if no stream.
-int streamPageIndex(const PrinterProfile* p) {
-  if (!printerHasStream(p)) return -1;
   return printerHasCamera(p) ? 3 : 2;
-}
-
-bool storeCamResult(uint8_t* buf, size_t len, CameraImageFormat fmt, int kind, bool ok) {
-  if (camImg) {
-    free(camImg);
-    camImg = nullptr;
-    camImgLen = 0;
-  }
-  camFmt = CameraImageFormat::Unknown;
-  camFetchedMs = millis();
-  camFetchedFor = selected;
-  camFetchedKind = kind;
-  camFetching = false;
-
-  if (!ok || !buf) {
-    if (buf) free(buf);
-    return false;
-  }
-  camImg = buf;
-  camImgLen = len;
-  camFmt = fmt;
-  return true;
 }
 
 bool fetchSnapshot(const PrinterProfile* p) {
@@ -321,22 +280,25 @@ bool fetchSnapshot(const PrinterProfile* p) {
   size_t len = 0;
   CameraImageFormat fmt = CameraImageFormat::Unknown;
   bool ok = CameraFetch::fetch(*p, &buf, &len, &fmt, camStatus, sizeof(camStatus));
-  return storeCamResult(buf, len, fmt, 0, ok);
-}
 
-bool fetchStream(const PrinterProfile* p) {
-  if (!p) {
-    strlcpy(camStatus, "no printer", sizeof(camStatus));
+  if (camImg) {
+    free(camImg);
+    camImg = nullptr;
+    camImgLen = 0;
+  }
+  camFmt = CameraImageFormat::Unknown;
+  camFetchedMs = millis();
+  camFetchedFor = selected;
+  camFetching = false;
+
+  if (!ok || !buf) {
+    if (buf) free(buf);
     return false;
   }
-  camFetching = true;
-  strlcpy(camStatus, "streaming…", sizeof(camStatus));
-
-  uint8_t* buf = nullptr;
-  size_t len = 0;
-  CameraImageFormat fmt = CameraImageFormat::Unknown;
-  bool ok = CameraFetch::fetchStreamFrame(*p, &buf, &len, &fmt, camStatus, sizeof(camStatus));
-  return storeCamResult(buf, len, fmt, 1, ok);
+  camImg = buf;
+  camImgLen = len;
+  camFmt = fmt;
+  return true;
 }
 
 bool jpegHasEoi(const uint8_t* data, size_t len) {
@@ -380,25 +342,23 @@ bool drawCamImage() {
   return false;
 }
 
-void paintCamPage(int kind) {
-  const bool isStream = kind == 1;
+void paintDetailPage2(const PrinterProfile* p) {
+  (void)p;
   canvas.fillRoundRect(4, 28, 312, 138, 8, COL_PANEL);
   canvas.setTextDatum(textdatum_t::middle_center);
 
   if (camFetching) {
     canvas.setTextColor(COL_MUTED, COL_PANEL);
-    canvas.drawString(isStream ? "Loading stream…" : "Loading camera…", canvas.width() / 2, 90,
-                      &fonts::Font2);
+    canvas.drawString("Loading camera…", canvas.width() / 2, 90, &fonts::Font2);
     return;
   }
 
-  if (camImg && camImgLen && camFetchedFor == selected && camFetchedKind == kind) {
+  if (camImg && camImgLen && camFetchedFor == selected) {
     if (camFmt == CameraImageFormat::Jpeg && jpegIsProgressive(camImg, camImgLen)) {
       canvas.setTextColor(COL_ERR, COL_PANEL);
       canvas.drawString("Progressive JPEG", canvas.width() / 2, 82, &fonts::Font2);
       canvas.setTextColor(COL_MUTED, COL_PANEL);
-      canvas.drawString(isStream ? "Need baseline MJPEG frames" : "Use baseline snapshot URL",
-                        canvas.width() / 2, 110, &fonts::Font0);
+      canvas.drawString("Use baseline snapshot URL", canvas.width() / 2, 110, &fonts::Font0);
       return;
     }
     if (camFmt == CameraImageFormat::Jpeg && !jpegHasEoi(camImg, camImgLen)) {
@@ -429,8 +389,7 @@ void paintCamPage(int kind) {
   }
 
   canvas.setTextColor(COL_MUTED, COL_PANEL);
-  canvas.drawString(camStatus[0] ? camStatus : (isStream ? "No stream yet" : "No snapshot yet"),
-                    canvas.width() / 2, 82, &fonts::Font2);
+  canvas.drawString(camStatus[0] ? camStatus : "No snapshot yet", canvas.width() / 2, 82, &fonts::Font2);
   canvas.setTextColor(COL_TEXT, COL_PANEL);
   canvas.drawString("Turn away & back to retry", canvas.width() / 2, 110, &fonts::Font0);
 }
@@ -448,8 +407,7 @@ void paintDetail() {
   if (!p || !st) return;
   if (detailPage == 0) paintDetailPage0(p, st);
   else if (detailPage == 1) paintDetailPage1(p, st);
-  else if (detailPage == snapshotPageIndex(p)) paintCamPage(0);
-  else if (detailPage == streamPageIndex(p)) paintCamPage(1);
+  else paintDetailPage2(p);
 }
 
 const char* actionLabels[] = {"Pause", "Resume", "Cancel", "E-Stop", "Back"};
@@ -817,31 +775,18 @@ void loop() {
   const bool due = !isStaticScreen() && (millis() - lastPaint > 2000);
   if (dirty || due) paint();
 
-  // Camera / stream fetch only after paint, and never on the same turn as encoder input.
-  if (screen == Screen::Detail && !d && !click && !back && !camFetching && WifiManager::isConnected()) {
+  // Camera fetch only after paint, and never on the same turn as encoder input.
+  if (screen == Screen::Detail && detailPage == 2 && !d && !click && !back && !camFetching) {
     const PrinterProfile* p = PrinterHub::profileAt(selected);
-    const int snapIdx = snapshotPageIndex(p);
-    const int streamIdx = streamPageIndex(p);
-
-    if (snapIdx >= 0 && detailPage == snapIdx && printerHasCamera(p)) {
+    if (printerHasCamera(p) && WifiManager::isConnected()) {
       const uint16_t refreshSec = ConfigStore::get().camRefreshSec;
-      bool stale = (camFetchedFor != selected) || (camFetchedKind != 0) || !camImgLen;
+      bool stale = (camFetchedFor != selected) || !camImgLen;
       if (!stale && refreshSec != 0 &&
           (millis() - camFetchedMs >= (uint32_t)refreshSec * 1000UL)) {
         stale = true;
       }
       if (stale) {
         fetchSnapshot(p);
-        dirty = true;
-        paint();
-      }
-    } else if (streamIdx >= 0 && detailPage == streamIdx && printerHasStream(p)) {
-      // Pull frames as quickly as practical while on the stream page.
-      constexpr uint32_t kStreamMinMs = 750;
-      bool stale = (camFetchedFor != selected) || (camFetchedKind != 1) || !camImgLen ||
-                   (millis() - camFetchedMs >= kStreamMinMs);
-      if (stale) {
-        fetchStream(p);
         dirty = true;
         paint();
       }

@@ -1,6 +1,6 @@
 {
   "name": "T-Print",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "new_install_prompt_erase": true,
   "builds": [
     {
