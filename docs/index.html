@@ -49,15 +49,19 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
+      --col: 560px;
       --ink: #07090c;
       --text: #f4f7fb;
       --muted: #9aa8b8;
       --accent: #ff6a3d;
       --accent-2: #7eb8ff;
       --line: rgba(232, 238, 246, 0.12);
+      --glass: rgba(18, 24, 31, 0.78);
       --font-display: "Syne", sans-serif;
       --font: "Manrope", system-ui, sans-serif;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
     }
+
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body {
@@ -65,235 +69,272 @@
       min-height: 100vh;
       font-family: var(--font);
       color: var(--text);
-      background: #06080b;
+      background:
+        radial-gradient(900px 480px at 12% -8%, rgba(255, 106, 61, 0.2), transparent 55%),
+        radial-gradient(700px 400px at 100% 0%, rgba(126, 184, 255, 0.12), transparent 50%),
+        linear-gradient(180deg, #0a0d11, var(--ink));
     }
     a { color: var(--accent-2); }
 
-    /* —— Hero composition —— */
-    .hero {
-      position: relative;
-      min-height: 100svh;
-      display: grid;
-      align-items: end;
-      overflow: hidden;
-      isolation: isolate;
+    .page {
+      width: min(var(--col), calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 1.5rem 0 3rem;
+      animation: rise 0.7s var(--ease);
     }
 
-    .slideshow {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      background: #0a0d12;
-      /* Soft dissolve at the frame edges */
-      -webkit-mask-image: radial-gradient(140% 110% at 62% 42%, #000 28%, transparent 78%);
-      mask-image: radial-gradient(140% 110% at 62% 42%, #000 28%, transparent 78%);
+    /* —— Top bar —— */
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.35rem;
     }
-    .slideshow-slide {
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+    .mark {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      color: #1a0a05;
+      background: linear-gradient(145deg, #ff8a5c, var(--accent));
+      box-shadow: 0 12px 28px rgba(255, 106, 61, 0.28);
+      flex-shrink: 0;
+    }
+    .brand h1 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.65rem;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+    .brand p {
+      margin: 0.28rem 0 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+    .nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-left: 0.9rem;
+    }
+    .nav a:hover { color: var(--text); }
+
+    /* —— Hero card —— */
+    .hero {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+      overflow: hidden;
+    }
+
+    .hero-media {
+      position: relative;
+      aspect-ratio: 16 / 10;
+      background: #0c1015;
+      /* Soft feathered edges */
+      -webkit-mask-image: radial-gradient(95% 92% at 50% 42%, #000 62%, transparent 100%);
+      mask-image: radial-gradient(95% 92% at 50% 42%, #000 62%, transparent 100%);
+    }
+    .slide {
       position: absolute;
       inset: 0;
       margin: 0;
       opacity: 0;
-      transition: opacity 1.15s ease;
+      transition: opacity 0.9s ease;
       pointer-events: none;
     }
-    .slideshow-slide.is-active {
-      opacity: 1;
-      z-index: 1;
-    }
-    .slideshow-slide img {
+    .slide.is-on { opacity: 1; }
+    .slide img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      object-position: center 40%;
-      transform: scale(1.06);
-      filter: saturate(1.05) contrast(1.03);
-      animation: ken 16s ease-in-out infinite alternate;
+      object-position: center 38%;
+      transform: scale(1.03);
+      animation: drift 18s ease-in-out infinite alternate;
     }
-    .slideshow-scrim {
+    .hero-media::after {
+      content: "";
       position: absolute;
       inset: 0;
-      z-index: 2;
       pointer-events: none;
       background:
-        linear-gradient(105deg, rgba(6, 8, 11, 0.88) 0%, rgba(6, 8, 11, 0.55) 36%, rgba(6, 8, 11, 0.12) 68%),
-        linear-gradient(180deg, rgba(6, 8, 11, 0.35) 0%, transparent 34%, rgba(6, 8, 11, 0.72) 100%);
+        linear-gradient(180deg, transparent 45%, rgba(7, 9, 12, 0.55) 100%),
+        radial-gradient(90% 80% at 50% 40%, transparent 40%, rgba(7, 9, 12, 0.35) 100%);
     }
 
-    .hero-inner {
-      position: relative;
-      z-index: 4;
-      width: min(1120px, 100%);
-      margin: 0 auto;
-      padding: 1.4rem 1.25rem 2.4rem;
-      display: grid;
-      gap: 1.5rem;
-      animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    .hero-body {
+      padding: 1.25rem 1.35rem 1.4rem;
     }
-    .hero-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-    }
-    .brand-name {
+    .hero-body h2 {
       margin: 0;
       font-family: var(--font-display);
-      font-size: clamp(2.2rem, 6vw, 3.4rem);
-      letter-spacing: -0.05em;
-      line-height: 0.95;
-      text-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+      font-size: 1.35rem;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
     }
-    .hero-nav a {
-      color: rgba(244, 247, 251, 0.72);
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 0.92rem;
-      margin-left: 1rem;
-    }
-    .hero-nav a:hover { color: var(--text); }
-
-    .hero-copy {
-      max-width: 28rem;
-    }
-    .hero-copy h1 {
-      margin: 0;
-      font-family: var(--font-display);
-      font-size: clamp(1.45rem, 3.4vw, 2.05rem);
-      letter-spacing: -0.035em;
-      line-height: 1.15;
-      font-weight: 700;
-    }
-    .hero-copy p {
-      margin: 0.7rem 0 0;
-      color: rgba(244, 247, 251, 0.78);
-      font-size: 1.05rem;
+    .hero-body > p {
+      margin: 0.55rem 0 0;
+      color: var(--muted);
       line-height: 1.5;
+      font-size: 0.98rem;
     }
-    .hero-actions {
-      margin-top: 1.25rem;
+
+    .hero-footer {
+      margin-top: 1.1rem;
       display: flex;
       flex-wrap: wrap;
-      gap: 0.75rem;
       align-items: center;
+      gap: 0.75rem 1rem;
     }
-    .hint-inline {
-      color: rgba(244, 247, 251, 0.55);
-      font-size: 0.85rem;
-    }
-
-    .slide-dots {
+    .slide-ui {
       display: flex;
-      gap: 0.45rem;
       align-items: center;
+      gap: 0.65rem;
+      flex: 1;
+      min-width: 0;
     }
-    .slide-dots button {
+    .dots {
+      display: flex;
+      gap: 0.4rem;
+      flex-shrink: 0;
+    }
+    .dots button {
       width: 7px;
       height: 7px;
-      border-radius: 999px;
       border: 0;
       padding: 0;
+      border-radius: 999px;
       background: rgba(244, 247, 251, 0.28);
       cursor: pointer;
-      transition: width 0.25s ease, background 0.25s ease;
+      transition: width 0.25s var(--ease), background 0.25s ease;
     }
-    .slide-dots button[aria-current="true"] {
-      width: 22px;
+    .dots button[aria-current="true"] {
+      width: 20px;
       background: var(--accent);
     }
-
     .caption {
-      color: rgba(244, 247, 251, 0.55);
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hint {
+      color: var(--muted);
       font-size: 0.82rem;
-      min-height: 1.2em;
     }
 
-    /* —— Rest of page —— */
-    .site {
-      position: relative;
-      z-index: 1;
-      background:
-        radial-gradient(900px 420px at 10% 0%, rgba(255, 106, 61, 0.12), transparent 55%),
-        linear-gradient(180deg, #06080b, #0a0d11 40%, #07090c);
-    }
-    .wrap {
-      width: min(760px, 100%);
-      margin: 0 auto;
-      padding: 0 1.25rem 3.5rem;
-    }
-    section {
-      padding-top: 3.25rem;
+    /* —— Content card —— */
+    .card {
+      margin-top: 1rem;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 1.45rem 1.35rem 1.35rem;
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
     }
     .eyebrow {
-      margin: 0 0 0.45rem;
+      margin: 0 0 0.4rem;
       color: var(--accent);
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
-    section h2 {
+    .card h2 {
       margin: 0;
       font-family: var(--font-display);
-      font-size: clamp(1.35rem, 2.6vw, 1.75rem);
+      font-size: 1.3rem;
       letter-spacing: -0.03em;
     }
-    .lead {
-      margin: 0.65rem 0 0;
+    .card .lead {
+      margin: 0.55rem 0 0;
       color: var(--muted);
-      line-height: 1.55;
-      font-size: 1.02rem;
+      line-height: 1.5;
+      font-size: 0.98rem;
     }
 
-    .flow {
-      margin-top: 1.4rem;
+    .steps {
+      margin: 1.25rem 0 0;
+      padding: 0;
+      list-style: none;
       display: grid;
       gap: 0.85rem;
       counter-reset: step;
     }
-    .flow-step {
+    .steps li {
       display: grid;
       grid-template-columns: auto 1fr;
-      gap: 0.85rem;
+      gap: 0.75rem;
       align-items: start;
     }
-    .flow-step::before {
+    .steps li::before {
       counter-increment: step;
       content: counter(step);
-      width: 1.7rem;
-      height: 1.7rem;
+      width: 1.65rem;
+      height: 1.65rem;
       border-radius: 999px;
       display: grid;
       place-items: center;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 700;
       color: #1a0a05;
       background: linear-gradient(135deg, #ff8a5c, var(--accent));
-      margin-top: 0.1rem;
+      margin-top: 0.05rem;
     }
-    .flow-step h3 {
+    .steps h3 {
       margin: 0;
-      font-size: 1rem;
+      font-size: 0.98rem;
     }
-    .flow-step p {
-      margin: 0.25rem 0 0;
+    .steps p {
+      margin: 0.2rem 0 0;
       color: var(--muted);
+      font-size: 0.92rem;
       line-height: 1.45;
-      font-size: 0.95rem;
     }
-    .flow-step strong { color: var(--text); }
+    .steps strong { color: var(--text); }
 
-    .flash-box {
-      margin-top: 1.5rem;
-      padding: 1.25rem 1.2rem;
-      border-radius: 20px;
-      border: 1px solid var(--line);
-      background: rgba(18, 24, 31, 0.55);
-      backdrop-filter: blur(12px);
+    .divider {
+      margin: 1.35rem 0 1.15rem;
+      border: 0;
+      border-top: 1px solid var(--line);
     }
-    .flash-box p {
-      margin: 0 0 1rem;
+    .again {
+      margin: 0 0 0.95rem;
       color: var(--muted);
+      font-size: 0.95rem;
       line-height: 1.45;
+    }
+    .note {
+      margin: 1rem 0 0;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.45;
+    }
+
+    footer {
+      margin-top: 1.35rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.84rem;
     }
 
     esp-web-install-button {
@@ -301,249 +342,219 @@
       --esp-tools-button-background: linear-gradient(135deg, #ff8a5c, #ff6a3d);
       --esp-tools-button-border-radius: 999px;
     }
-    .install {
+    .btn {
       font: inherit;
       font-weight: 700;
-      padding: 0.95rem 1.35rem;
+      padding: 0.85rem 1.2rem;
       border: 0;
       border-radius: 999px;
       background: linear-gradient(135deg, #ff8a5c, var(--accent));
       color: #1a0a05;
       cursor: pointer;
       display: inline-flex;
-      gap: 0.45rem;
       align-items: center;
-      box-shadow: 0 14px 34px rgba(255, 106, 61, 0.32);
-      text-decoration: none;
+      gap: 0.45rem;
+      box-shadow: 0 12px 28px rgba(255, 106, 61, 0.28);
     }
-    .install:hover { filter: brightness(1.05); }
-    .install.ghost {
-      background: rgba(244, 247, 251, 0.08);
+    .btn:hover { filter: brightness(1.05); }
+    .btn-ghost {
+      background: transparent;
       color: var(--text);
-      border: 1px solid rgba(232, 238, 246, 0.16);
+      border: 1px solid var(--line);
       box-shadow: none;
     }
-    .unsupported, .not-allowed {
+    .warn {
       display: block;
-      margin-top: 0.65rem;
+      margin-top: 0.55rem;
       color: #ffb4a2;
-      font-size: 0.9rem;
-    }
-    .note {
-      margin-top: 1.1rem;
-      color: var(--muted);
-      font-size: 0.86rem;
-      line-height: 1.45;
-    }
-    footer {
-      margin-top: 2.75rem;
-      padding-top: 1.1rem;
-      border-top: 1px solid var(--line);
-      color: var(--muted);
-      font-size: 0.85rem;
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
+      font-size: 0.88rem;
     }
 
     @keyframes rise {
-      from { opacity: 0; transform: translateY(16px); }
+      from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    @keyframes ken {
-      from { transform: scale(1.04) translate3d(0, 0, 0); }
-      to { transform: scale(1.1) translate3d(-1.5%, -1%, 0); }
+    @keyframes drift {
+      from { transform: scale(1.03) translate(0, 0); }
+      to { transform: scale(1.08) translate(-1%, -0.8%); }
     }
 
-    @media (max-width: 720px) {
-      .hero { min-height: 92svh; }
-      .slideshow {
-        -webkit-mask-image: radial-gradient(130% 100% at 50% 30%, #000 20%, transparent 82%);
-        mask-image: radial-gradient(130% 100% at 50% 30%, #000 20%, transparent 82%);
-      }
-      .slideshow-scrim {
-        background:
-          linear-gradient(180deg, rgba(6, 8, 11, 0.45) 0%, rgba(6, 8, 11, 0.2) 35%, rgba(6, 8, 11, 0.85) 100%);
-      }
-      .hero-copy { max-width: none; }
-      .brand-name { font-size: 2.3rem; }
+    @media (max-width: 520px) {
+      .page { width: calc(100% - 1.5rem); padding-top: 1.1rem; }
+      .hero, .card { border-radius: 20px; }
+      .hero-body, .card { padding-left: 1.1rem; padding-right: 1.1rem; }
+      .brand h1 { font-size: 1.45rem; }
+      .caption { display: none; }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .slideshow-slide img { animation: none; transform: scale(1.02); }
-      .slideshow-slide { transition: none; }
+      .slide img { animation: none; }
+      .slide { transition: none; }
+      .page { animation: none; }
     }
   </style>
 </head>
 <body>
-  <header class="hero">
-    <div class="slideshow" id="slideshow" aria-roledescription="carousel" aria-label="T-Print on the T-Embed">
-      <figure class="slideshow-slide is-active" data-caption="Fleet view — Klipper &amp; Bambu on one screen">
-        <img src="img/hero-fleet.jpg" width="1600" height="1200" alt="T-Print fleet list showing Klipper and Bambu printers" fetchpriority="high" />
-      </figure>
-      <figure class="slideshow-slide" data-caption="Live status — progress, temps, and ETA">
-        <img src="img/hero-status.jpg" width="1600" height="1200" alt="T-Print status page with print progress, temps, and ETA" />
-      </figure>
-      <figure class="slideshow-slide" data-caption="Actions — pause, resume, cancel, e-stop">
-        <img src="img/hero-actions.jpg" width="1600" height="1200" alt="T-Print actions menu with Pause, Resume, Cancel, and E-Stop" />
-      </figure>
-      <figure class="slideshow-slide" data-caption="Camera page — printer bed snapshot">
-        <img src="img/hero-camera.jpg" width="1600" height="1200" alt="T-Print camera page showing a printer bed snapshot" />
-      </figure>
-      <div class="slideshow-scrim" aria-hidden="true"></div>
+  <main class="page">
+    <div class="top">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" d="M19 6a1 1 0 0 0 1-1a1 1 0 0 0-1-1a1 1 0 0 0-1 1a1 1 0 0 0 1 1m0-4a3 3 0 0 1 3 3v6h-4V7H6v4H2V5a3 3 0 0 1 3-3zm-1 16.25c0 .38-.21.71-.53.88l-4.9 2.69q-.255.18-.57.18c-.21 0-.41-.06-.57-.18l-4.9-2.69a.99.99 0 0 1-.53-.88V13c0-.38.21-.71.53-.88l4.9-2.44c.16-.12.36-.18.57-.18q.315 0 .57.18l4.9 2.44c.32.17.53.5.53.88zm-6-6.6L9.04 13L12 14.6l2.96-1.6zm-4 6.01l3 1.63v-2.96l-3-1.62zm8 0v-2.95l-3 1.62v2.96z"/>
+          </svg>
+        </div>
+        <div>
+          <h1>T-Print</h1>
+          <p>LilyGO T‑Embed companion</p>
+        </div>
+      </div>
+      <nav class="nav" aria-label="Page">
+        <a href="#about" data-gc="nav-about">About</a>
+        <a href="#setup" data-gc="nav-setup">Setup</a>
+      </nav>
     </div>
 
-    <div class="hero-inner">
-      <div class="hero-top">
-        <p class="brand-name">T-Print</p>
-        <nav class="hero-nav" aria-label="Page">
-          <a href="#about" data-gc="nav-about">About</a>
-          <a href="#setup" data-gc="nav-setup">Setup</a>
-        </nav>
+    <section class="hero" aria-label="Install">
+      <div class="hero-media" id="slideshow" aria-roledescription="carousel" aria-label="T-Print on the T-Embed">
+        <figure class="slide is-on" data-caption="Fleet — Klipper &amp; Bambu together">
+          <img src="img/hero-fleet.jpg" width="1120" height="700" alt="T-Print fleet list showing Klipper and Bambu printers" fetchpriority="high" />
+        </figure>
+        <figure class="slide" data-caption="Status — progress, temps, ETA">
+          <img src="img/hero-status.jpg" width="1120" height="700" alt="T-Print status page with print progress, temps, and ETA" />
+        </figure>
+        <figure class="slide" data-caption="Actions — pause, resume, cancel, e-stop">
+          <img src="img/hero-actions.jpg" width="1120" height="700" alt="T-Print actions menu" />
+        </figure>
+        <figure class="slide" data-caption="Camera — printer bed snapshot">
+          <img src="img/hero-camera.jpg" width="1120" height="700" alt="T-Print camera page" />
+        </figure>
       </div>
 
-      <div class="hero-copy">
-        <h1>Pocket remote for your 3D printers</h1>
+      <div class="hero-body">
+        <h2>Pocket remote for your 3D printers</h2>
         <p>Flash T‑Print onto a LilyGO T‑Embed, then monitor and control Klipper, Bambu, and Prusa from your pocket.</p>
-        <div class="hero-actions">
+
+        <div class="hero-footer">
           <esp-web-install-button manifest="./manifest.json">
-            <button slot="activate" class="install" type="button" data-gc="install-firmware">
+            <button slot="activate" class="btn" type="button" data-gc="install-firmware">
               <iconify-icon icon="mdi:usb-port" width="18"></iconify-icon>
               Install firmware
             </button>
-            <span slot="unsupported" class="unsupported">Use Chrome or Edge on a desktop computer.</span>
-            <span slot="not-allowed" class="not-allowed">Open this page over https or localhost to allow Web Serial.</span>
+            <span slot="unsupported" class="warn">Use Chrome or Edge on desktop.</span>
+            <span slot="not-allowed" class="warn">Open over https or localhost for Web Serial.</span>
           </esp-web-install-button>
-          <span class="hint-inline">Chrome / Edge · USB‑C</span>
-        </div>
-        <div style="margin-top:1.15rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
-          <div class="slide-dots" id="slideDots" role="tablist" aria-label="Photos"></div>
-          <p class="caption" id="slideCaption" aria-live="polite"></p>
+          <span class="hint">Chrome / Edge · USB‑C</span>
+          <div class="slide-ui">
+            <div class="dots" id="dots" role="tablist" aria-label="Photos"></div>
+            <p class="caption" id="caption" aria-live="polite"></p>
+          </div>
         </div>
       </div>
-    </div>
-  </header>
+    </section>
 
-  <div class="site">
-    <div class="wrap">
-      <section id="about" aria-labelledby="about-title">
-        <p class="eyebrow">What it is</p>
-        <h2 id="about-title">A handheld companion for your print farm</h2>
-        <p class="lead">
-          T‑Print is open firmware for the LilyGO T‑Embed. Encoder + screen for status, job details, and camera
-          snapshots — pause, resume, cancel, or e‑stop without opening a laptop. Wi‑Fi setup stays on the device;
-          nothing goes to a cloud account.
-        </p>
-      </section>
+    <section class="card" id="about">
+      <p class="eyebrow">What it is</p>
+      <h2>A handheld companion for your print farm</h2>
+      <p class="lead">
+        Open firmware for the LilyGO T‑Embed. Encoder + screen for status, job details, and camera snapshots —
+        pause, resume, cancel, or e‑stop without opening a laptop. Setup stays on-device; nothing goes to the cloud.
+      </p>
 
-      <section id="setup" aria-labelledby="setup-title">
+      <div id="setup">
+        <hr class="divider" />
         <p class="eyebrow">After you flash</p>
-        <h2 id="setup-title">Three steps to get online</h2>
-        <div class="flow">
-          <div class="flow-step">
+        <h2>Three steps to get online</h2>
+        <ol class="steps">
+          <li>
             <div>
               <h3>Connect to T‑Print Wi‑Fi</h3>
               <p>On your phone, join the <strong>T-Print</strong> network the device creates.</p>
             </div>
-          </div>
-          <div class="flow-step">
+          </li>
+          <li>
             <div>
               <h3>Open setup</h3>
               <p>Visit <strong>http://192.168.4.1</strong>, pick your home Wi‑Fi, and add printers.</p>
             </div>
-          </div>
-          <div class="flow-step">
+          </li>
+          <li>
             <div>
               <h3>Switch back to home Wi‑Fi</h3>
-              <p>Reopen the IP shown on the device screen (also via <strong>t-print.local</strong>).</p>
+              <p>Reopen the IP on the device screen (or <strong>t-print.local</strong>).</p>
             </div>
-          </div>
-        </div>
+          </li>
+        </ol>
 
-        <div class="flash-box">
-          <p>Need to flash again? Plug the T‑Embed in over USB‑C and install from here.</p>
-          <esp-web-install-button manifest="./manifest.json">
-            <button slot="activate" class="install ghost" type="button" data-gc="install-firmware-again">
-              <iconify-icon icon="mdi:download" width="18"></iconify-icon>
-              Install firmware
-            </button>
-            <span slot="unsupported" class="unsupported">Use Chrome or Edge on desktop.</span>
-            <span slot="not-allowed" class="not-allowed">Serve over https or localhost for Web Serial.</span>
-          </esp-web-install-button>
-          <p class="note">
-            Source on
-            <a href="https://github.com/TechJeeper/t-print" target="_blank" rel="noreferrer" data-gc="link-github">GitHub</a>.
-            Icons from
-            <a href="https://icon-sets.iconify.design/mdi/" target="_blank" rel="noreferrer" data-gc="link-iconify">Iconify</a>.
-          </p>
-        </div>
-      </section>
+        <hr class="divider" />
+        <p class="again">Need to flash again? Plug in USB‑C and install from here.</p>
+        <esp-web-install-button manifest="./manifest.json">
+          <button slot="activate" class="btn btn-ghost" type="button" data-gc="install-firmware-again">
+            <iconify-icon icon="mdi:download" width="18"></iconify-icon>
+            Install firmware
+          </button>
+          <span slot="unsupported" class="warn">Use Chrome or Edge on desktop.</span>
+          <span slot="not-allowed" class="warn">Serve over https or localhost for Web Serial.</span>
+        </esp-web-install-button>
+        <p class="note">
+          Source on
+          <a href="https://github.com/TechJeeper/t-print" target="_blank" rel="noreferrer" data-gc="link-github">GitHub</a>.
+          Icons from
+          <a href="https://icon-sets.iconify.design/mdi/" target="_blank" rel="noreferrer" data-gc="link-iconify">Iconify</a>.
+        </p>
+      </div>
+    </section>
 
-      <footer>
-        <span>T‑Print · LilyGO T‑Embed CC1101</span>
-        <a href="https://github.com/TechJeeper/t-print" target="_blank" rel="noreferrer" data-gc="footer-github">GitHub</a>
-      </footer>
-    </div>
-  </div>
+    <footer>
+      <span>T‑Print · LilyGO T‑Embed CC1101</span>
+      <a href="https://github.com/TechJeeper/t-print" target="_blank" rel="noreferrer" data-gc="footer-github">GitHub</a>
+    </footer>
+  </main>
 
   <script>
     (function () {
-      const slides = [...document.querySelectorAll(".slideshow-slide")];
-      const dots = document.getElementById("slideDots");
-      const caption = document.getElementById("slideCaption");
-      let index = 0;
+      const slides = [...document.querySelectorAll(".slide")];
+      const dots = document.getElementById("dots");
+      const caption = document.getElementById("caption");
+      let i = 0;
       let timer = null;
-      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const quiet = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-      function show(i) {
-        index = (i + slides.length) % slides.length;
-        slides.forEach((s, n) => s.classList.toggle("is-active", n === index));
-        [...dots.querySelectorAll("button")].forEach((b, n) => {
-          b.setAttribute("aria-current", n === index ? "true" : "false");
-        });
-        if (caption) caption.textContent = slides[index].dataset.caption || "";
+      function show(n) {
+        i = (n + slides.length) % slides.length;
+        slides.forEach((s, x) => s.classList.toggle("is-on", x === i));
+        [...dots.children].forEach((b, x) => b.setAttribute("aria-current", x === i ? "true" : "false"));
+        caption.textContent = slides[i].dataset.caption || "";
       }
 
       slides.forEach((_, n) => {
         const b = document.createElement("button");
         b.type = "button";
-        b.setAttribute("aria-label", `Show photo ${n + 1}`);
+        b.setAttribute("aria-label", "Photo " + (n + 1));
         b.addEventListener("click", () => {
           show(n);
           restart();
-          if (window.goatcounter?.count) {
-            window.goatcounter.count({ path: `slide-${n + 1}`, event: true });
-          }
+          window.goatcounter?.count?.({ path: "slide-" + (n + 1), event: true });
         });
         dots.appendChild(b);
       });
 
-      function next() { show(index + 1); }
       function restart() {
         clearInterval(timer);
-        if (!reduceMotion) timer = setInterval(next, 4500);
+        if (!quiet) timer = setInterval(() => show(i + 1), 4500);
       }
 
       show(0);
       restart();
-
       document.addEventListener("visibilitychange", () => {
         if (document.hidden) clearInterval(timer);
         else restart();
       });
     })();
 
-    function gcEvent(path) {
-      if (!path) return;
-      if (window.goatcounter && typeof window.goatcounter.count === "function") {
-        window.goatcounter.count({ path: String(path), title: document.title, event: true });
-      }
-    }
     document.addEventListener("click", (e) => {
       const el = e.target.closest("[data-gc]");
-      if (!el) return;
-      gcEvent(el.getAttribute("data-gc"));
+      if (!el || !window.goatcounter?.count) return;
+      window.goatcounter.count({ path: el.getAttribute("data-gc"), title: document.title, event: true });
     }, true);
   </script>
   <script data-goatcounter="https://tdeck.goatcounter.com/count"
