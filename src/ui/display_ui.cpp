@@ -779,7 +779,12 @@ void loop() {
   if (screen == Screen::Detail && detailPage == 2 && !d && !click && !back && !camFetching) {
     const PrinterProfile* p = PrinterHub::profileAt(selected);
     if (printerHasCamera(p) && WifiManager::isConnected()) {
-      bool stale = (camFetchedFor != selected) || (millis() - camFetchedMs > 8000) || !camImgLen;
+      const uint16_t refreshSec = ConfigStore::get().camRefreshSec;
+      bool stale = (camFetchedFor != selected) || !camImgLen;
+      if (!stale && refreshSec != 0 &&
+          (millis() - camFetchedMs >= (uint32_t)refreshSec * 1000UL)) {
+        stale = true;
+      }
       if (stale) {
         fetchSnapshot(p);
         dirty = true;

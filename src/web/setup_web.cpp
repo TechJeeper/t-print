@@ -113,6 +113,7 @@ void begin() {
     doc["ssid"] = WiFi.SSID();
     doc["brightness"] = ConfigStore::get().brightness;
     doc["lcdTimeoutSec"] = ConfigStore::get().lcdTimeoutSec;
+    doc["camRefreshSec"] = ConfigStore::get().camRefreshSec;
     doc["alarmOnError"] = ConfigStore::get().alarmOnError;
     doc["mdns"] = String(ConfigStore::get().deviceName) + ".local";
     sendJson(req, doc);
@@ -220,6 +221,12 @@ void begin() {
                 if (t < 0) t = 0;
                 if (t > 3600) t = 3600;
                 cfg.lcdTimeoutSec = (uint16_t)t;
+              }
+              if (doc["camRefreshSec"].is<int>()) {
+                int t = doc["camRefreshSec"] | 30;
+                if (t < 0) t = 0;
+                if (t > 600) t = 600;
+                cfg.camRefreshSec = (uint16_t)t;
               }
               if (!doc["alarmOnError"].isNull()) {
                 cfg.alarmOnError = doc["alarmOnError"] | false;

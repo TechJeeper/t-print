@@ -13,6 +13,7 @@ struct DeviceConfig {
   char deviceName[kDeviceNameLen];
   uint8_t brightness;     // 0-100
   uint16_t lcdTimeoutSec; // 0 = never; otherwise seconds until backlight off
+  uint16_t camRefreshSec; // camera page auto-refresh; 0 = only on open / printer change
   bool alarmOnError;      // beep when any printer errors
   uint8_t printerCount;
   PrinterProfile printers[kMaxPrinters];

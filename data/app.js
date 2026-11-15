@@ -113,6 +113,7 @@ async function refreshStatus() {
   form.brightness.value = s.brightness || 80;
   $("#briVal").textContent = `${form.brightness.value}%`;
   form.lcdTimeout.value = String(s.lcdTimeoutSec ?? 300);
+  if (form.camRefresh) form.camRefresh.value = String(s.camRefreshSec ?? 30);
   form.alarmOnError.checked = !!s.alarmOnError;
   $("#deviceMeta").textContent = `v${s.version} · http://${s.mdns} · ${s.ip}`;
   if (s.wifiConnected) ensureDiscoverRange(s.ip);
@@ -429,6 +430,7 @@ function bindForms() {
         deviceName: fd.get("deviceName"),
         brightness: Number(fd.get("brightness")),
         lcdTimeoutSec: Number(fd.get("lcdTimeout")),
+        camRefreshSec: Number(fd.get("camRefresh")),
         alarmOnError: !!e.target.alarmOnError.checked,
       }),
     });
